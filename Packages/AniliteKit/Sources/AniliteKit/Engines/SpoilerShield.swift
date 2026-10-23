@@ -64,7 +64,7 @@ public struct SpoilerContext: Hashable, Sendable {
     }
 }
 
-public enum Visibility: Hashable, Sendable {
+public enum SpoilerVisibility: Hashable, Sendable {
     case visible
     /// Hidden; `revealAt` is the progress at which it would unlock, if known.
     case hidden(reason: String, revealAt: Int?)
@@ -81,7 +81,7 @@ public enum SpoilerShield {
 
     // MARK: Descriptions
 
-    public static func segments(_ raw: String?, context: SpoilerContext, policy: SpoilerPolicy) -> [(segment: TextSegment, visibility: Visibility)] {
+    public static func segments(_ raw: String?, context: SpoilerContext, policy: SpoilerPolicy) -> [(segment: TextSegment, visibility: SpoilerVisibility)] {
         let open = isOpen(context, policy)
         return RichText.segments(from: raw).map { seg in
             if seg.isSpoiler && !open {
@@ -103,7 +103,7 @@ public enum SpoilerShield {
     // MARK: Episodes
 
     /// Episode titles/thumbnails beyond the next one to watch can spoil (e.g. "X's Death").
-    public static func episode(_ number: Int, context: SpoilerContext, policy: SpoilerPolicy) -> Visibility {
+    public static func episode(_ number: Int, context: SpoilerContext, policy: SpoilerPolicy) -> SpoilerVisibility {
         if isOpen(context, policy) || policy.level == .relaxed { return .visible }
         if number <= context.progress + 1 { return .visible }
         return .hidden(reason: "Beyond your progress", revealAt: number - 1)
@@ -111,10 +111,10 @@ public enum SpoilerShield {
 
     // MARK: Characters
 
-    public static func character(role: CharacterRole?, description: String?, index: Int, context: SpoilerContext, policy: SpoilerPolicy) -> (showCard: Visibility, showDescription: Visibility) {
+    public static func character(role: CharacterRole?, description: String?, index: Int, context: SpoilerContext, policy: SpoilerPolicy) -> (showCard: SpoilerVisibility, showDescription: SpoilerVisibility) {
         if isOpen(context, policy) { return (.visible, .visible) }
         let hasMarkedSpoiler = description?.contains("~!") == true || description?.contains("markdown_spoiler") == true
-        let descriptionVisibility: Visibility = hasMarkedSpoiler && policy.level != .relaxed
+        let descriptionVisibility: SpoilerVisibility = hasMarkedSpoiler && policy.level != .relaxed
             ? .hidden(reason: "Contains story details", revealAt: context.total)
             : .visible
 
@@ -132,7 +132,7 @@ public enum SpoilerShield {
     // MARK: Relations
 
     /// Sequels to a show you haven't finished: their synopsis and art can reveal outcomes.
-    public static func relation(_ type: MediaRelationType?, base: SpoilerContext, policy: SpoilerPolicy) -> Visibility {
+    public static func relation(_ type: MediaRelationType?, base: SpoilerContext, policy: SpoilerPolicy) -> SpoilerVisibility {
         guard policy.isEnabled, !isOpen(base, policy) else { return .visible }
         switch type {
         case .sequel?:
@@ -162,7 +162,7 @@ public enum SpoilerShield {
 
     // MARK: Shared notes (clubs, shared lists)
 
-    public static func sharedNote(_ note: SharedNote, readerProgress: Int, readerFinished: Bool, policy: SpoilerPolicy) -> Visibility {
+    public static func sharedNote(_ note: SharedNote, readerProgress: Int, readerFinished: Bool, policy: SpoilerPolicy) -> SpoilerVisibility {
         guard policy.isEnabled, !readerFinished else { return .visible }
         if note.atProgress <= readerProgress { return .visible }
         return .hidden(reason: "Written at \(note.unitLabel) \(note.atProgress)", revealAt: note.atProgress)

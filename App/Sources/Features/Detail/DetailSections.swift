@@ -45,7 +45,7 @@ struct SynopsisSection: View {
     }
 
     @ViewBuilder
-    private func segmentView(_ text: String, visibility: Visibility, index: Int) -> some View {
+    private func segmentView(_ text: String, visibility: SpoilerVisibility, index: Int) -> some View {
         let label = Text(text)
             .font(.body)
             .foregroundStyle(Theme.textSecondary)
