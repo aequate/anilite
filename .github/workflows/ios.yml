@@ -1,0 +1,200 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kit:
+    name: AniliteKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1-jammy
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        run: swift test --package-path Packages/AniliteKit
+
+  ios:
+    name: Build, test and package IPA
+    runs-on: macos-26
+    timeout-minutes: 80
+    env:
+      PROJECT: Anilite.xcodeproj
+      SCHEME: Anilite
+      ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+      HAS_SIGNING: ${{ secrets.IOS_CERTIFICATE_P12 != '' && secrets.IOS_PROVISIONING_PROFILE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+          xcrun simctl list runtimes | grep -i ios || true
+
+      - name: Metal toolchain
+        run: |
+          if xcrun metal -v >/dev/null 2>&1; then
+            echo "Metal toolchain present"
+          else
+            echo "Downloading Metal toolchain"
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+
+      - name: Generate Xcode project
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+          xcodebuild -list -project "$PROJECT"
+
+      - name: AniliteKit tests (macOS)
+        run: swift test --package-path Packages/AniliteKit
+
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,vs in sorted(d["devices"].items(), reverse=True) if "iOS" in k for v in vs if v["name"].startswith("iPhone")))')
+          echo "Simulator: $UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Unit tests (simulator)
+        run: |
+          mkdir -p build
+          if xcodebuild test \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination "id=$SIM_UDID" \
+            -resultBundlePath build/Tests.xcresult \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            > build-test.log 2>&1; then status=0; else status=$?; fi
+          grep -E "error:|failed|Executed|\*\* TEST" build-test.log | sort -u | head -n 300 || true
+          exit $status
+
+      - name: Archive (unsigned)
+        run: |
+          if xcodebuild archive \
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Anilite.xcarchive \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            ANILIST_CLIENT_ID="$ANILIST_CLIENT_ID" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            > build-archive.log 2>&1; then status=0; else status=$?; fi
+          grep -E "error:|\*\* ARCHIVE" build-archive.log | sort -u | head -n 300 || true
+          exit $status
+
+      - name: Package unsigned IPA
+        run: |
+          APP=build/Anilite.xcarchive/Products/Applications/Anilite.app
+          test -d "$APP"
+          plutil -p "$APP/Info.plist" | grep -E "CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion|MinimumOSVersion"
+          lipo -info "$APP/Anilite"
+          test -f "$APP/default.metallib" && echo "Metal library bundled"
+          mkdir -p build/ipa/Payload dist
+          cp -R "$APP" build/ipa/Payload/
+          (cd build/ipa && zip -qry ../../dist/Anilite-unsigned.ipa Payload)
+          (cd build/Anilite.xcarchive && zip -qry ../../dist/Anilite-dSYMs.zip dSYMs) || true
+          unzip -l dist/Anilite-unsigned.ipa | tail -n 3
+          ls -lh dist
+
+      - name: Signed IPA (when signing secrets are configured)
+        if: env.HAS_SIGNING == 'true'
+        env:
+          P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          EXPORT_METHOD: ${{ secrets.IOS_EXPORT_METHOD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KC_PASS=$(uuidgen)
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          echo "$PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security create-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KC_PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KEYCHAIN" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$RUNNER_TEMP/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$RUNNER_TEMP/profile.plist")
+          TEAM=${TEAM_ID:-$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$RUNNER_TEMP/profile.plist")}
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          xcodebuild archive \
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/Anilite-signed.xcarchive \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            ANILIST_CLIENT_ID="$ANILIST_CLIENT_ID" \
+            CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" | tail -n 5
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>${EXPORT_METHOD:-release-testing}</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key><dict><key>app.anilite.ios</key><string>$PROFILE_NAME</string></dict>
+            <key>stripSwiftSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath build/Anilite-signed.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath build/export
+          cp build/export/*.ipa dist/Anilite-signed.ipa
+          security delete-keychain "$KEYCHAIN" || true
+          ls -lh dist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anilite-ipa-${{ github.run_number }}
+          path: dist/*.ipa
+          if-no-files-found: error
+
+      - name: Upload dSYMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anilite-dSYMs-${{ github.run_number }}
+          path: dist/Anilite-dSYMs.zip
+          if-no-files-found: ignore
+
+      - name: Upload test results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anilite-test-results-${{ github.run_number }}
+          path: |
+            build/Tests.xcresult
+            build-*.log
+          if-no-files-found: ignore
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Anilite $TAG" --generate-notes
+          fi

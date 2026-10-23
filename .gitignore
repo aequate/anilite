@@ -1,0 +1,26 @@
+# Xcode / XcodeGen
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+*.ipa
+*.dSYM.zip
+
+# SwiftPM
+.build/
+.swiftpm/
+Packages/AniliteKit/.build/
+Package.resolved
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets
+*.p12
+*.mobileprovision
+Signing/
