@@ -1,6 +1,6 @@
 # Anilite
 
-A native iOS companion for anime and manga, built in SwiftUI with Metal shaders. Anilite treats a franchise as one connected universe of seasons, films, manga and spin-offs. It learns your taste, plans your watching, and keeps spoilers out of sight until you're ready.
+A native iOS companion for anime and manga, built in SwiftUI with a Metal fluid simulation behind every screen. Anilite treats a franchise as one connected universe of seasons, films, manga and spin-offs. It learns your taste, plans your watching, and keeps spoilers out of sight until you're ready.
 
 Data comes from the public [AniList](https://anilist.co) GraphQL API. Anilite is independent and is not affiliated with AniList, any studio or any publisher. It never hosts or links to unlicensed video or scans.
 
@@ -10,21 +10,25 @@ Data comes from the public [AniList](https://anilist.co) GraphQL API. Anilite is
 | --- | --- |
 | **Discover** | Mood Match (natural-language and mood chips), a "Tonight" plan sized to your free time, a For You feed scored against your Taste DNA, revival suggestions for dropped titles, and trending titles filtered by Spoiler Shield. |
 | **Find** | Free-text discovery ("short cozy fantasy, no romance, finished airing") parsed into AniList filters, shown as removable chips, plus recent searches. |
-| **Universe Atlas** | Each franchise as an interactive, physics-driven relation graph (sequels, prequels, side stories, adaptations) with a list fallback. |
+| **Universe Atlas** | Each franchise as a map you can fly through: a web of titles, characters, voice actors, creators, studios and themes that grows when you tap a node, or a timeline that lays the same map out by release year with people in lanes above and below. The two layouts morph into each other. A list view is also available. |
 | **Pathfinder** | Watch and read orders, canon and filler guidance for long-running shows, completion times, and where the anime ends so you know where to pick up the manga. |
-| **Title detail** | Artwork-derived atmosphere, depth parallax, shared-element hero transitions, spoiler-aware synopsis, characters, staff, relations, recommendations and official streaming links (regional availability shown only when it can be verified). |
+| **Title detail** | The page takes on the title's artwork: a blurred cover with marbled ink in colours read from its pixels, depth parallax, shared-element hero transitions, spoiler-aware synopsis, characters, staff, relations, recommendations and official streaming links (regional availability shown only when it can be verified). |
 | **Library** | Offline-first lists synced with AniList (or kept locally), smart shelves with rules, a binge planner with weekly time budgets, an airing calendar with reminders, a journal and history. |
-| **You** | Taste DNA (genre and theme strands, vibe radar, taste evolution, bridges between interests), holographic archetype card, achievements, and an animated yearly recap. |
-| **Social** | Shareable taste fingerprints and compatibility scores, comparison with any public AniList user, spoiler-safe shared lists, and watch clubs with schedules and standing. |
+| **You** | Taste DNA (genre and theme strands, vibe radar, taste evolution, bridges between interests), archetype card, achievements, and an animated yearly recap. |
+| **People** | Profiles for any AniList user (stats, favourites, recent activity, compatibility with you), follow and unfollow, a feed from the people you follow, and suggestions for people with your taste, found through reviews and activity on the titles you rated highest. Add friends in person with a QR code, or share a Taste DNA link. Also spoiler-safe shared lists and watch clubs with schedules and standing. |
 | **Concierge** | A guide for newcomers: explains terms, picks starter titles, says where to start a franchise and whether a show's filler can be skipped. |
 
 **Spoiler Shield** runs through the whole app. Episode descriptions, spoiler tags, character fates and late-series relations are hidden according to your progress and chosen level, and you can unlock spoilers per title.
+
+## Design
+
+The backdrop is painted and the foreground is inked. A stable-fluids simulation runs on the GPU, and every screen's backdrop is a window onto that one simulation, so the ink flows unbroken from page to page. Touches stir it. Pages with artwork (a title, a character, a creator, a studio, someone's profile, the Discover card in view, what you're watching in Library, the top search result) show that artwork blurred beneath the ink, in its own colours, and dissolve to the next one when it changes. In front of that, surfaces are solid, titles are set in a serif, and motion is short and eased with no bounce.
 
 ## Engineering
 
 - **Architecture**: an `AniliteKit` Swift package holds the models, AniList client, sync engine, caching and every recommendation, planning and spoiler engine. It has no UI code and is tested on Linux and macOS. The app target holds only SwiftUI, Metal and platform code.
 - **Network use**: GraphQL queries are batched, with per-request cache policies, rate-limit handling (`Retry-After`, exponential backoff), request coalescing and an on-disk response cache. Library edits queue offline and sync when the device is back online.
-- **Performance**: images are downsampled to display size and cached in memory and on disk. Shader effects scale through an `EffectsBudget` that responds to Low Power Mode, thermal state and Reduce Motion, from 120 Hz cinematic down to static surfaces.
+- **Performance**: images are downsampled to display size and cached in memory and on disk. The fluid simulation and the Atlas scale through an `EffectsBudget` that responds to Low Power Mode, thermal state and Reduce Motion: 60 fps at full, 30 fps when balanced, and a single still frame when minimal. Off-screen backdrops pause.
 - **Accessibility**: Dynamic Type, VoiceOver labels and combined elements, Reduce Motion, Reduce Transparency and Increase Contrast fallbacks.
 - **Tests**: the `AniliteKit` unit tests cover the engines, decoding, sync and networking. `AniliteTests` covers app logic: reminder planning, settings migration, routing and text formatting.
 
@@ -32,7 +36,7 @@ Data comes from the public [AniList](https://anilist.co) GraphQL API. Anilite is
 App/Sources
 ├── App/        entry point, root view, tab shell
 ├── Core/       AppModel, Router, settings, OAuth, reminders, image pipeline
-├── Design/     theme, glass, atmosphere, Metal shaders, effects budget
+├── Design/     theme, surfaces, fluid simulation (Metal), artwork backdrops, effects budget
 ├── Shared/     media cards, rails, async content, hero transitions
 └── Features/   Discover, Find, Atlas, Pathfinder, Detail, Library, You, Social, Concierge, People, Onboarding
 Packages/AniliteKit   models, networking, sync, engines (+ tests)
@@ -94,3 +98,4 @@ swift test --package-path Packages/AniliteKit   # also runs on Linux
 - Anilite respects AniList's rate limit, caches responses, and doesn't scrape other sites.
 - "Where to watch" lists only the official links AniList provides. A region is shown as available only when the data confirms it.
 - Adult titles are filtered out.
+- The camera is used only to scan friend QR codes. Nothing is recorded or uploaded.

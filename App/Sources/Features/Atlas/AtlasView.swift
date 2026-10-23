@@ -301,6 +301,7 @@ struct AtlasView: View {
 // MARK: - Painter
 
 /// Draws one frame of the Atlas: motes, threads, then nodes from back to front.
+@MainActor
 private struct AtlasPainter {
     let scene: AtlasScene
     let graph: AtlasGraph
