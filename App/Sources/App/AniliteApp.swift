@@ -3,26 +3,40 @@ import AniliteKit
 
 @main
 struct AniliteApp: App {
-    @State private var effects = EffectsBudget()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var model: AppModel
+
+    init() {
+        _model = State(initialValue: AppModel(effects: EffectsBudget()))
+    }
 
     var body: some Scene {
+        let model = self.model
         WindowGroup {
-            BootView()
-                .environment(effects)
+            AppRoot()
+                .environment(model)
+                .environment(model.effects)
+                .environment(model.router)
                 .preferredColorScheme(.dark)
+                .tint(Theme.brand)
+                .onOpenURL { model.handle($0) }
+                .task { await model.bootstrap() }
         }
-    }
-}
-
-/// Temporary first screen while the rest of the app lands.
-struct BootView: View {
-    var body: some View {
-        ZStack {
-            AtmosphereView(atmosphere: .brand)
-            VStack(spacing: 12) {
-                Text("ANILITE").font(Typo.display(40)).foregroundStyle(Theme.textPrimary)
-                Text("Anime and manga, one universe.").foregroundStyle(Theme.textSecondary)
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .background:
+                AiringReminders.scheduleBackgroundRefresh()
+                Task { await model.flush() }
+            case .active:
+                model.effects.refresh()
+                Task { await model.flush() }
+            default:
+                break
             }
+        }
+        .backgroundTask(.appRefresh(AiringReminders.refreshTaskId)) {
+            await model.backgroundRefresh()
         }
     }
 }

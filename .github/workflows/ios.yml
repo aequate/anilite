@@ -21,7 +21,7 @@ jobs:
     container: swift:6.1-jammy
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: swift test
         run: swift test --package-path Packages/AniliteKit
 
@@ -35,7 +35,7 @@ jobs:
       ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
       HAS_SIGNING: ${{ secrets.IOS_CERTIFICATE_P12 != '' && secrets.IOS_PROVISIONING_PROFILE != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Toolchain
         run: |
@@ -164,14 +164,14 @@ jobs:
           ls -lh dist
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Anilite-ipa-${{ github.run_number }}
           path: dist/*.ipa
           if-no-files-found: error
 
       - name: Upload dSYMs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Anilite-dSYMs-${{ github.run_number }}
           path: dist/Anilite-dSYMs.zip
@@ -179,7 +179,7 @@ jobs:
 
       - name: Upload test results and logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Anilite-test-results-${{ github.run_number }}
           path: |

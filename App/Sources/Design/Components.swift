@@ -218,7 +218,6 @@ struct SectionHeader<Trailing: View>: View {
             Spacer(minLength: 8)
             trailing()
         }
-        .padding(.horizontal, Theme.gutter)
     }
 }
 
