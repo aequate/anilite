@@ -24,6 +24,9 @@ struct RouteView: View {
         case .tasteDNA: TasteDNAView()
         case .social: SocialView()
         case .compareUser(let name): CompareUserView(userName: name)
+        case .person(let name): PersonProfileView(name: name)
+        case .followingFeed: FollowingFeedView()
+        case .follows(let id, let name, let followers): FollowListView(userId: id, name: name, followers: followers)
         case .club(let id): ClubView(clubId: id)
         case .glossary: GlossaryView()
         case .settings: SettingsView()
@@ -93,27 +96,36 @@ struct LoadingPlaceholder: View {
     }
 }
 
-/// Sumi ground with the marbled-ink backdrop, behind every screen without artwork of its own.
+/// Sumi ground with the marbled-ink backdrop behind every screen. Pass `artwork` and the
+/// screen takes on that picture instead: blurred, with ink in colours read from its pixels.
 struct ScreenBackground: View {
     var atmosphere: Atmosphere = .brand
     var intensity: Double = 0.55
+    var artwork: String? = nil
+    /// AniList's colour for the artwork, used until the pixels have been read.
+    var artworkHint: String? = nil
+
+    @State private var derived: Atmosphere?
 
     var body: some View {
-        ZStack {
-            Theme.ink0
-            AtmosphereView(atmosphere: atmosphere, intensity: intensity)
-                .mask(LinearGradient(colors: [.black, .black.opacity(0.7), .black.opacity(0.3)], startPoint: .top, endPoint: .bottom))
-        }
-        .ignoresSafeArea()
+        // Always the same view, so artwork arriving or changing dissolves instead of swapping.
+        ArtworkBackdrop(artwork: artwork, atmosphere: artwork == nil ? atmosphere : (derived ?? atmosphere), intensity: intensity)
+            .task(id: artwork) {
+                guard let artwork else { return }
+                let palette = await ImagePipeline.shared.palette(for: artwork, hint: artworkHint)
+                guard !Task.isCancelled else { return }
+                derived = Atmosphere(mode: atmosphere.mode, palette: palette, energy: atmosphere.energy, density: atmosphere.density)
+            }
     }
 }
 
 extension View {
-    /// Standard screen chrome: dark atmosphere background and inline title.
-    func screenChrome(_ title: String, atmosphere: Atmosphere = .brand, large: Bool = false) -> some View {
+    /// Standard screen chrome: atmosphere (or artwork) background and a title.
+    func screenChrome(_ title: String, atmosphere: Atmosphere = .brand, artwork: String? = nil,
+                      artworkHint: String? = nil, large: Bool = false) -> some View {
         self
             .scrollContentBackground(.hidden)
-            .background { ScreenBackground(atmosphere: atmosphere) }
+            .background { ScreenBackground(atmosphere: atmosphere, artwork: artwork, artworkHint: artworkHint) }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(large ? .large : .inline)
             .toolbarBackground(.hidden, for: .navigationBar)

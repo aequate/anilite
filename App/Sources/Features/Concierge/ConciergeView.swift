@@ -235,7 +235,7 @@ struct ConciergeView: View {
                 .onSubmit { send(draft) }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .surface(cornerRadius: 22)
+                .surface()
             Button {
                 send(draft)
             } label: {
@@ -318,7 +318,7 @@ private struct TurnView: View {
                 }
             }
             .padding(16)
-            .surface(cornerRadius: 18)
+            .surface()
 
         case .picks(let picks, let covers):
             VStack(spacing: 10) {
@@ -346,7 +346,7 @@ private struct TurnView: View {
                             Spacer(minLength: 0)
                         }
                         .padding(12)
-                        .surface(cornerRadius: 16)
+                        .surface()
                     }
                     .buttonStyle(PressableStyle(scale: 0.98))
                 }
@@ -405,7 +405,7 @@ private struct TurnView: View {
                 }
             }
             .padding(16)
-            .surface(cornerRadius: 18)
+            .surface()
 
         case .searchSuggestion(let text):
             Button { search(text) } label: {

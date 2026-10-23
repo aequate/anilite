@@ -157,6 +157,8 @@ public struct ListActivity: Codable, Hashable, Sendable, Identifiable {
     public var progress: String?
     public var createdAt: Int
     public var media: Media?
+    /// Only present in feeds that mix several people.
+    public var user: AniListUser?
 
     public var date: Date { Date(timeIntervalSince1970: TimeInterval(createdAt)) }
 

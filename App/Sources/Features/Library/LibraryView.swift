@@ -30,7 +30,11 @@ struct LibraryView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .refreshable { await model.syncLibrary(force: true) }
-        .background { ScreenBackground(atmosphere: .night, intensity: 0.45) }
+        .background {
+            // The library wears whatever you're in the middle of.
+            let lead = entries.first { $0.status.isActive }?.media
+            ScreenBackground(atmosphere: .night, intensity: 0.45, artwork: lead?.backdropArtwork, artworkHint: lead?.coverImage?.color)
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -68,7 +72,7 @@ struct LibraryView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .surface(cornerRadius: 16, interactive: true)
+                .surface(interactive: true)
             }
         }
         .padding(.horizontal, Theme.gutter)
@@ -287,7 +291,7 @@ private struct StatusTile: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .surface(cornerRadius: 18)
+        .surface()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(status.label(for: type)), \(count)")
     }
@@ -355,7 +359,7 @@ private struct ToolTile: View {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 54)
-            .surface(cornerRadius: 16, interactive: true)
+            .surface(interactive: true)
         }
         .buttonStyle(PressableStyle())
     }

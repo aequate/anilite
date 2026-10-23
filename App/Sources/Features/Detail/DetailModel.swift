@@ -45,6 +45,11 @@ final class DetailModel {
 
     private func apply(_ media: Media) {
         self.media = media
+        // Tint with AniList's cover colour straight away; the palette read from the cover's
+        // pixels replaces it a moment later.
+        if palette == Theme.defaultPalette {
+            atmosphere = Atmosphere.resolve(for: media, palette: .from(hex: media.coverImage?.color))
+        }
         let graph = FranchiseGraph(seed: media)
         if media.mediaType == .anime {
             continuePoint = ContinuePointResolver.resolve(anime: media, mainline: graph.mainline, source: graph.sourceMedia)

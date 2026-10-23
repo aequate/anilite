@@ -167,7 +167,7 @@ struct MoodMatchView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .surface(cornerRadius: 28)
+        .surface()
     }
 
     // MARK: Logic

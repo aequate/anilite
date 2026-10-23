@@ -210,6 +210,8 @@ private struct SheetHost: View {
         case .newClub(let media): NewClubSheet(media: media)
         case .newShelf: NewShelfSheet()
         case .shareList: ShareListSheet()
+        case .myCode: MyCodeSheet()
+        case .scanCode: ScanCodeSheet()
         }
     }
 }

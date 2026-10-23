@@ -58,9 +58,9 @@ struct StaticAtmosphere: View {
 
 extension Atmosphere {
     /// Screens without a single title: slow ink in the app's own pigments.
-    static let brand = Atmosphere(mode: .aurora, palette: Theme.defaultPalette, energy: 0.4, density: 0.6)
+    static let brand = Atmosphere(mode: .aurora, palette: Theme.inkPalette, energy: 0.4, density: 0.6)
     /// Quieter variant for list-heavy screens.
-    static let night = Atmosphere(mode: .stars, palette: Theme.defaultPalette, energy: 0.3, density: 0.5)
+    static let night = Atmosphere(mode: .stars, palette: Theme.inkPalette, energy: 0.3, density: 0.5)
 }
 
 // MARK: - Metal view
@@ -125,8 +125,8 @@ final class FluidMTKView: MTKView {
 final class FluidRenderer: NSObject, MTKViewDelegate {
     var animating = false
     private var forcing = FluidForcing.forMode(.aurora)
-    private var target = PaletteVectors(Theme.defaultPalette)
-    private var current = PaletteVectors(Theme.defaultPalette)
+    private var target = PaletteVectors(Theme.inkPalette)
+    private var current = PaletteVectors(Theme.inkPalette)
     private var targetIntensity: Float = 1
     private var currentIntensity: Float = 1
     private var lastDraw: CFTimeInterval = 0
@@ -157,7 +157,7 @@ final class FluidRenderer: NSObject, MTKViewDelegate {
         let now = CACurrentMediaTime()
         let dt = lastDraw == 0 ? 1.0 / 60.0 : min(now - lastDraw, 0.1)
         lastDraw = now
-        let ease = Float(animating ? 1 - exp(-dt * 5) : 1)
+        let ease = Float(animating ? 1 - exp(-dt * 2.8) : 1)
         current.blend(towards: target, amount: ease)
         currentIntensity += (targetIntensity - currentIntensity) * ease
 

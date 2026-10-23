@@ -289,7 +289,7 @@ struct JournalComposeSheet: View {
                             .lineLimit(5...14)
                             .focused($focused)
                             .padding(14)
-                            .surface(cornerRadius: 16)
+                            .surface()
                     }
 
                     if let unit {

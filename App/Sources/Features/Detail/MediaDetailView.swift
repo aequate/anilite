@@ -22,10 +22,13 @@ struct MediaDetailView: View {
                         .padding(Theme.gutter)
                     Spacer()
                 }
-                .background { ScreenBackground() }
             } else {
-                LoadingPlaceholder().background { ScreenBackground() }
+                LoadingPlaceholder()
             }
+        }
+        .background {
+            // One backdrop for every state, so the page's colours ease in as the cover arrives.
+            ArtworkBackdrop(artwork: detail.media?.backdropArtwork, atmosphere: detail.atmosphere, intensity: 0.85)
         }
         .heroDestination(mediaId)
         .task { await detail.load(client: model.client) }
@@ -77,13 +80,6 @@ private struct DetailContent: View {
         }
         .scrollIndicators(.hidden)
         .refreshable { await detail.load(client: model.client, force: true) }
-        .background {
-            ZStack {
-                palette.deepColor.opacity(0.5)
-                Theme.ink0.opacity(0.75)
-            }
-            .ignoresSafeArea()
-        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar { toolbar }
@@ -140,14 +136,14 @@ private struct DetailHero: View {
             let stretch = max(0, minY)
             let parallax = budget.allowsParallax ? min(0, minY) * -0.45 : 0
             ZStack(alignment: .bottomLeading) {
-                AtmosphereView(atmosphere: atmosphere)
+                Color.clear
                 if let banner = media.bannerImage {
                     RemoteImage(banner, points: 430, placeholder: .clear)
                         .opacity(0.55)
                         .blendMode(.screen)
                         .mask(LinearGradient(colors: [.black, .black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom))
                 }
-                LinearGradient(colors: [.clear, Theme.ink0.opacity(0.35), Theme.ink0.opacity(0.92)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.clear, .clear, Theme.ink0.opacity(0.6)], startPoint: .top, endPoint: .bottom)
                 titleBlock
                     .padding(.horizontal, Theme.gutter)
                     .padding(.bottom, 8)
@@ -162,16 +158,15 @@ private struct DetailHero: View {
 
     private var titleBlock: some View {
         HStack(alignment: .bottom, spacing: 16) {
-            PosterImage(media: media, width: 116, cornerRadius: 16)
-                .shadow(color: .black.opacity(0.55), radius: 18, y: 10)
+            PosterImage(media: media, width: 108, cornerRadius: Theme.cornerCover)
             VStack(alignment: .leading, spacing: 6) {
                 Eyebrow(text: [media.formatLabel, media.status?.label ?? "", media.year.map(String.init) ?? ""].filter { !$0.isEmpty }.joined(separator: " · "),
                         color: Theme.textSecondary)
                 Text(model.title(media))
-                    .font(Typo.display(26))
-                    .foregroundStyle(.white)
+                    .font(Typo.display(34))
+                    .foregroundStyle(Theme.textPrimary)
                     .lineLimit(4)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.6)
                     .accessibilityAddTraits(.isHeader)
                 if let native = media.title?.native, native != model.title(media) {
                     Text(native)
@@ -287,7 +282,7 @@ private struct EntryActionBar: View {
             }
         }
         .padding(16)
-        .surface(cornerRadius: 20, tint: tint)
+        .surface(tint: tint)
     }
 
     private func progressText(_ entry: LibraryEntry) -> String {
@@ -323,7 +318,7 @@ private struct AiringCountdown: View {
                 Spacer()
             }
             .padding(14)
-            .surface(cornerRadius: 16)
+            .surface()
             .accessibilityElement(children: .combine)
         }
     }
@@ -352,7 +347,7 @@ private struct HealthCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .surface(cornerRadius: 20)
+        .surface()
         .accessibilityElement(children: .combine)
     }
 
@@ -399,7 +394,7 @@ private struct ContinuePointCard: View {
             }
         }
         .padding(16)
-        .surface(cornerRadius: 20, tint: tint)
+        .surface(tint: tint)
     }
 
     private var confidence: String {

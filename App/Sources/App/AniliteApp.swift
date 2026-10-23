@@ -9,6 +9,26 @@ struct AniliteApp: App {
 
     init() {
         _model = State(initialValue: AppModel(effects: EffectsBudget()))
+        Self.styleNavigationBars()
+    }
+
+    /// Serif titles in the navigation bar, to match the in-page headings. The bar stays
+    /// transparent so each screen's backdrop runs to the top edge.
+    private static func styleNavigationBars() {
+        func serif(_ style: UIFont.TextStyle, weight: UIFont.Weight) -> UIFont {
+            let base = UIFont.preferredFont(forTextStyle: style)
+            let weighted = UIFont.systemFont(ofSize: base.pointSize, weight: weight)
+            guard let descriptor = weighted.fontDescriptor.withDesign(.serif) else { return weighted }
+            return UIFont(descriptor: descriptor, size: base.pointSize)
+        }
+        let ink = UIColor(red: 0.937, green: 0.918, blue: 0.878, alpha: 1)
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.titleTextAttributes = [.font: serif(.headline, weight: .semibold), .foregroundColor: ink]
+        appearance.largeTitleTextAttributes = [.font: serif(.largeTitle, weight: .bold), .foregroundColor: ink]
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
     }
 
     var body: some Scene {

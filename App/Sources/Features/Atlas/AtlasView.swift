@@ -1,25 +1,25 @@
 import SwiftUI
+import QuartzCore
 import AniliteKit
 
-/// Universe Atlas: an explorable 3D (or flat 2D) map of how titles, characters, creators,
-/// studios and themes connect. Drag to orbit, pinch to zoom, tap to inspect, double-tap
-/// to expand. VoiceOver users get an equivalent grouped list.
+/// Universe Atlas: how titles, characters, creators, studios and themes connect, as a 3D
+/// web or as a timeline. Drag to turn (or pan the timeline), pinch to zoom, tap to focus,
+/// tap a focused node again to open up its connections. VoiceOver gets a grouped list.
 struct AtlasView: View {
     @Environment(AppModel.self) private var model
-    @Environment(Router.self) private var router
     @Environment(EffectsBudget.self) private var budget
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var atlas = AtlasModel()
     @State private var searchText = ""
     @State private var showsSearch = false
     @State private var showsList = false
-    @State private var dragStart: CGSize = .zero
-    @State private var zoomStart: Double?
+    @State private var lastDrag: CGSize = .zero
+    @State private var lastMagnification: Double?
     @FocusState private var searchFocused: Bool
 
     var body: some View {
         ZStack(alignment: .top) {
-            ScreenBackground(atmosphere: .night, intensity: 0.35)
+            ScreenBackground(atmosphere: backdrop, intensity: 0.32)
             content
             header
         }
@@ -27,17 +27,21 @@ struct AtlasView: View {
         .task {
             if atlas.isEmpty { await atlas.seedFromLibrary(using: model) }
         }
-        .onAppear(perform: startSimulation)
-        .onDisappear { atlas.stopSimulation() }
-        .onChange(of: budget.level) { _, _ in startSimulation() }
+        .onAppear(perform: applyBudget)
+        .onChange(of: budget.level) { _, _ in applyBudget() }
     }
 
-    private func startSimulation() {
-        if budget.allowsPhysics && budget.level > .still {
-            atlas.startSimulation(interval: budget.frameInterval, autoRotate: budget.level == .full)
-        } else {
-            atlas.stopSimulation()
-        }
+    /// The ink behind the map takes on the focused title's colour.
+    private var backdrop: Atmosphere {
+        guard let node = atlas.node(atlas.selected), node.id.kind.isTitle, let hex = node.colorHex else { return .night }
+        return Atmosphere(mode: .stars, palette: ArtworkPalette.from(hex: hex), energy: 0.3, density: 0.5)
+    }
+
+    private func applyBudget() {
+        atlas.animates = budget.allowsPhysics
+        atlas.scene.ambient = budget.level == .full
+        atlas.scene.pulses = budget.level == .full
+        atlas.wake()
     }
 
     @ViewBuilder private var content: some View {
@@ -53,7 +57,7 @@ struct AtlasView: View {
         case .loaded:
             if showsList || voiceOver {
                 AtlasList(atlas: atlas)
-                    .padding(.top, 120)
+                    .padding(.top, 150)
             } else {
                 canvas
                     .overlay(alignment: .bottom) { selectionCard }
@@ -61,7 +65,7 @@ struct AtlasView: View {
         default:
             VStack(spacing: 14) {
                 ProgressView().controlSize(.large)
-                Text("Charting connections…")
+                Text("Charting connections")
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -80,7 +84,7 @@ struct AtlasView: View {
                         .foregroundStyle(Theme.textPrimary)
                         .accessibilityAddTraits(.isHeader)
                     if let seed = atlas.seedTitle, atlas.state == .loaded {
-                        Text("The universe around \(seed) · \(atlas.graph.nodes.count) nodes")
+                        Text("Around \(seed), \(atlas.graph.nodes.count) connections")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.textTertiary)
                             .lineLimit(1)
@@ -93,11 +97,7 @@ struct AtlasView: View {
                         searchFocused = showsSearch
                     }
                     if !voiceOver {
-                        iconButton(atlas.isFlat ? "cube" : "square.grid.3x3", label: atlas.isFlat ? "Switch to 3D" : "Switch to 2D") {
-                            Haptics.tap(.soft)
-                            withAnimation(.easeInOut(duration: 0.4)) { atlas.setFlat(!atlas.isFlat) }
-                        }
-                        iconButton(showsList ? "circle.hexagongrid" : "list.bullet", label: showsList ? "Show map" : "Show as list") {
+                        iconButton(showsList ? "point.3.connected.trianglepath.dotted" : "list.bullet", label: showsList ? "Show map" : "Show as list") {
                             showsList.toggle()
                         }
                     }
@@ -105,8 +105,8 @@ struct AtlasView: View {
             }
             if showsSearch {
                 HStack(spacing: 10) {
-                    Image(systemName: "sparkle.magnifyingglass").foregroundStyle(Theme.accentCool)
-                    TextField("Center the map on a title", text: $searchText)
+                    Image(systemName: "magnifyingglass").foregroundStyle(Theme.textTertiary)
+                    TextField("Centre the map on a title", text: $searchText)
                         .submitLabel(.go)
                         .focused($searchFocused)
                         .onSubmit {
@@ -117,10 +117,22 @@ struct AtlasView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .surface(cornerRadius: 18, interactive: true)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .surface(interactive: true)
+                .transition(.opacity)
             }
-            if atlas.state == .loaded { kindFilter }
+            if atlas.state == .loaded {
+                if !showsList && !voiceOver {
+                    Picker("Layout", selection: Binding(get: { atlas.mode }, set: { mode in
+                        Haptics.tick()
+                        atlas.setMode(mode)
+                    })) {
+                        ForEach(AtlasMode.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 240)
+                }
+                kindFilter
+            }
         }
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 8)
@@ -134,7 +146,7 @@ struct AtlasView: View {
                 .frame(width: 42, height: 42)
                 .capsuleSurface(interactive: true)
         }
-        .buttonStyle(PressableStyle(scale: 0.9))
+        .buttonStyle(PressableStyle(scale: 0.92))
         .accessibilityLabel(label)
     }
 
@@ -143,25 +155,25 @@ struct AtlasView: View {
             HStack(spacing: 8) {
                 ForEach(AtlasKind.allCases, id: \.self) { kind in
                     let count = atlas.count(of: kind)
+                    let hidden = atlas.hiddenKinds.contains(kind)
                     if count > 0 {
                         Button {
                             Haptics.tick()
-                            if atlas.hiddenKinds.contains(kind) { atlas.hiddenKinds.remove(kind) } else { atlas.hiddenKinds.insert(kind) }
+                            atlas.toggle(kind)
                         } label: {
                             HStack(spacing: 6) {
-                                Circle().fill(kind.tint).frame(width: 8, height: 8)
+                                KindMark(kind: kind, filled: !hidden)
                                 Text("\(kind.label) \(count)")
-                                    .font(.caption.weight(.semibold))
+                                    .font(.caption.weight(.semibold).monospacedDigit())
                             }
                             .padding(.horizontal, 11)
                             .padding(.vertical, 7)
-                            .foregroundStyle(atlas.hiddenKinds.contains(kind) ? Theme.textTertiary : Theme.textPrimary)
+                            .foregroundStyle(hidden ? Theme.textTertiary : Theme.textPrimary)
                             .capsuleSurface()
-                            .opacity(atlas.hiddenKinds.contains(kind) ? 0.55 : 1)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("\(kind.label), \(count)")
-                        .accessibilityValue(atlas.hiddenKinds.contains(kind) ? "Hidden" : "Shown")
+                        .accessibilityValue(hidden ? "Hidden" : "Shown")
                     }
                 }
             }
@@ -173,177 +185,103 @@ struct AtlasView: View {
     // MARK: Canvas
 
     private var canvas: some View {
-        GeometryReader { geo in
-            let size = geo.size
-            let nodes = atlas.visibleNodes()
-            let portraits = nodes.filter { $0.id.kind.hasPortrait && $0.imageURL != nil && !$0.isSpoilerHidden }
-            Canvas(rendersAsynchronously: false) { context, size in
-                draw(in: &context, size: size, nodes: nodes)
-            } symbols: {
-                ForEach(portraits) { node in
-                    RemoteImage(node.imageURL, points: 64, placeholder: node.tint.opacity(0.4))
-                        .frame(width: 64, height: 64)
-                        .clipShape(Circle())
+        let nodes = atlas.visibleNodes()
+        let images = nodes.filter { $0.id.kind.hasPortrait && $0.imageURL != nil && !$0.isSpoilerHidden }
+        let graph = atlas.graph
+        let selected = atlas.selected
+        let expanded = graph.expanded
+        let scene = atlas.scene
+        let model = atlas
+        return GeometryReader { geo in
+            TimelineView(.animation(minimumInterval: budget.level == .full ? nil : 1.0 / 30, paused: !atlas.isLive)) { _ in
+                Canvas(rendersAsynchronously: false) { context, size in
+                    scene.viewport = size
+                    let moving = scene.tick(graph: graph)
+                    AtlasPainter(scene: scene, graph: graph, nodes: nodes, selected: selected, expanded: expanded)
+                        .draw(in: &context, size: size)
+                    if !moving { model.sceneDidSettle() }
+                } symbols: {
+                    ForEach(images) { node in
+                        Group {
+                            if node.id.kind.isTitle {
+                                RemoteImage(node.imageURL, points: 90, placeholder: node.tint.opacity(0.5))
+                                    .frame(width: 60, height: 88)
+                                    .clipped()
+                            } else {
+                                RemoteImage(node.imageURL, points: 60, placeholder: Theme.ink2)
+                                    .frame(width: 56, height: 56)
+                                    .clipShape(Circle())
+                            }
+                        }
                         .tag(node.id)
+                    }
                 }
             }
             .contentShape(Rectangle())
-            .gesture(orbitGesture)
+            .gesture(dragGesture)
             .simultaneousGesture(zoomGesture)
-            .onTapGesture(count: 2, coordinateSpace: .local) { location in
-                if let id = hit(location, size: size, nodes: nodes) {
-                    atlas.selected = id
-                    Task { await atlas.expand(id, using: model) }
-                }
-            }
-            .onTapGesture(count: 1, coordinateSpace: .local) { location in
-                let id = hit(location, size: size, nodes: nodes)
-                withAnimation(Motion.standard) { atlas.selected = id }
-                if id != nil { Haptics.tick() }
-            }
+            .onTapGesture(coordinateSpace: .local) { location in tap(at: location) }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Universe map with \(nodes.count) connected nodes")
-            .accessibilityHint("Turn on VoiceOver list mode to browse them")
+            .accessibilityHint("Switch to the list to browse them")
+            .onChange(of: geo.size) { _, _ in atlas.wake() }
         }
         .ignoresSafeArea(edges: .bottom)
     }
 
-    private func screenPoint(_ p: AtlasCamera.Projected, size: CGSize) -> CGPoint {
-        CGPoint(x: size.width / 2 + CGFloat(p.x), y: size.height / 2 + 30 + CGFloat(p.y))
+    private func tap(at location: CGPoint) {
+        let id = hit(location)
+        if let id, id == atlas.selected {
+            if !atlas.isExpanded(id) {
+                Haptics.tap(.soft)
+                Task { await atlas.expand(id, using: model) }
+            }
+            return
+        }
+        withAnimation(Motion.standard) { atlas.select(id) }
+        if id != nil { Haptics.tick() }
     }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize, nodes: [AtlasNode]) {
-        let camera = atlas.camera
-        let positions = atlas.layout.positions
-        var projected: [AtlasNodeID: AtlasCamera.Projected] = [:]
-        for node in nodes {
-            if let p = positions[node.id], let proj = camera.project(p) { projected[node.id] = proj }
+    private func hit(_ location: CGPoint) -> AtlasNodeID? {
+        var best: (id: AtlasNodeID, depth: Double)?
+        for (id, node) in atlas.scene.screen {
+            let reach = max(22, node.radius + 6)
+            guard hypot(node.center.x - location.x, node.center.y - location.y) <= reach else { continue }
+            if best == nil || node.depth < best!.depth { best = (id, node.depth) }
         }
-        let selected = atlas.selected
-        let focus: Set<AtlasNodeID> = selected.map { Set(atlas.graph.neighbors(of: $0)).union([$0]) } ?? []
-
-        // Edges first, faded by depth; the selection's edges glow.
-        for edge in atlas.graph.edges {
-            guard let a = projected[edge.a], let b = projected[edge.b] else { continue }
-            let pa = screenPoint(a, size: size), pb = screenPoint(b, size: size)
-            var path = Path()
-            path.move(to: pa)
-            path.addLine(to: pb)
-            let isFocus = selected != nil && (edge.a == selected || edge.b == selected)
-            let depthFade = min(1, max(0.15, 1.6 - (a.depth + b.depth) / 2 / camera.distance))
-            let alpha = isFocus ? 0.75 : (selected == nil ? 0.22 : 0.07) * depthFade
-            let color = isFocus ? (atlas.node(selected)?.tint ?? Theme.accentCool) : Color.white
-            context.stroke(path, with: .color(color.opacity(alpha)), lineWidth: isFocus ? 1.6 : CGFloat(0.6 + edge.strength * 0.4))
-            if isFocus {
-                let mid = CGPoint(x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2)
-                let label = context.resolve(Text(edge.label).font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textSecondary))
-                context.draw(label, at: mid)
-            }
-        }
-
-        // Nodes back to front.
-        let ordered = nodes.compactMap { node -> (AtlasNode, AtlasCamera.Projected)? in
-            guard let p = projected[node.id] else { return nil }
-            return (node, p)
-        }.sorted { $0.1.depth > $1.1.depth }
-
-        for (node, p) in ordered {
-            let center = screenPoint(p, size: size)
-            let scale = CGFloat(min(2.2, max(0.35, p.scale)))
-            let radius = node.id.kind.radius * scale * CGFloat(0.75 + min(1.5, node.weight) * 0.25)
-            let dimmed = selected != nil && !focus.contains(node.id)
-            let fog = min(1, max(0.25, 1.5 - p.depth / camera.distance))
-            var layer = context
-            layer.opacity = (dimmed ? 0.28 : 1) * fog
-            let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-
-            if node.id == selected {
-                let halo = rect.insetBy(dx: -radius * 0.9, dy: -radius * 0.9)
-                layer.fill(Path(ellipseIn: halo), with: .radialGradient(Gradient(colors: [node.tint.opacity(0.55), .clear]),
-                                                                       center: center, startRadius: radius * 0.6, endRadius: halo.width / 2))
-            }
-
-            if node.id.kind == .theme {
-                layer.fill(Path(roundedRect: rect.insetBy(dx: -radius * 0.6, dy: 0), cornerRadius: radius), with: .color(node.tint.opacity(0.28)))
-                let label = layer.resolve(Text("#" + node.title).font(.system(size: max(8, 10 * scale), weight: .semibold)).foregroundStyle(Theme.textPrimary))
-                layer.draw(label, at: center)
-                continue
-            }
-
-            layer.fill(Path(ellipseIn: rect), with: .color(node.tint.opacity(0.9)))
-            if node.isSpoilerHidden {
-                let glyph = layer.resolve(Image(systemName: "eye.slash.fill"))
-                layer.draw(glyph, in: rect.insetBy(dx: radius * 0.45, dy: radius * 0.45))
-            } else if let symbol = layer.resolveSymbol(id: node.id) {
-                layer.draw(symbol, in: rect.insetBy(dx: 1.5, dy: 1.5))
-            } else {
-                var glyph = layer.resolve(Image(systemName: node.id.kind.symbol))
-                glyph.shading = .color(.black.opacity(0.7))
-                layer.draw(glyph, in: rect.insetBy(dx: radius * 0.5, dy: radius * 0.5))
-            }
-            layer.stroke(Path(ellipseIn: rect), with: .color(.white.opacity(node.id == selected ? 0.95 : 0.35)), lineWidth: node.id == selected ? 2 : 0.8)
-            if atlas.isExpanded(node.id) == false, node.id.kind == .anime || node.id.kind == .manga {
-                // A small notch marks nodes that can still be expanded.
-                let dot = CGRect(x: rect.maxX - radius * 0.45, y: rect.minY, width: radius * 0.45, height: radius * 0.45)
-                layer.fill(Path(ellipseIn: dot), with: .color(.white.opacity(0.85)))
-            }
-
-            if scale > 0.8 || node.id == selected || (focus.contains(node.id) && selected != nil) {
-                let title = node.title.count > 22 ? String(node.title.prefix(21)) + "…" : node.title
-                let text = layer.resolve(Text(title)
-                    .font(.system(size: max(9, 11 * min(scale, 1.3)), weight: node.id == selected ? .bold : .medium))
-                    .foregroundStyle(Theme.textPrimary))
-                layer.draw(text, at: CGPoint(x: center.x, y: rect.maxY + 9))
-            }
-        }
+        return best?.id
     }
 
-    private func hit(_ location: CGPoint, size: CGSize, nodes: [AtlasNode]) -> AtlasNodeID? {
-        var best: (AtlasNodeID, CGFloat, Double)?
-        for node in nodes {
-            guard let p = atlas.layout.positions[node.id], let proj = atlas.camera.project(p) else { continue }
-            let center = screenPoint(proj, size: size)
-            let scale = CGFloat(min(2.2, max(0.35, proj.scale)))
-            let radius = max(22, node.id.kind.radius * scale + 8)
-            let distance = hypot(center.x - location.x, center.y - location.y)
-            guard distance <= radius else { continue }
-            // Prefer the nearest-to-camera node when they overlap.
-            if best == nil || proj.depth < best!.2 { best = (node.id, distance, proj.depth) }
-        }
-        return best?.0
-    }
-
-    private var orbitGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 3)
             .onChanged { value in
-                atlas.isInteracting = true
-                let dx = value.translation.width - dragStart.width
-                let dy = value.translation.height - dragStart.height
-                dragStart = value.translation
-                if atlas.isFlat {
-                    atlas.pan(dx: Double(dx), dy: Double(dy))
-                } else {
-                    atlas.camera.orbit(dx: Double(dx), dy: Double(dy))
-                }
+                if lastDrag == .zero && !atlas.scene.isInteracting { atlas.scene.beginInteraction() }
+                let dx = value.translation.width - lastDrag.width
+                let dy = value.translation.height - lastDrag.height
+                lastDrag = value.translation
+                atlas.scene.drag(dx: Double(dx), dy: Double(dy))
+                atlas.wake()
             }
-            .onEnded { _ in
-                dragStart = .zero
-                atlas.isInteracting = false
+            .onEnded { value in
+                lastDrag = .zero
+                atlas.scene.endInteraction(velocity: value.velocity)
+                atlas.wake()
             }
     }
 
     private var zoomGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                atlas.isInteracting = true
-                let previous = zoomStart ?? 1
-                atlas.camera.zoom(by: Double(value.magnification) / previous)
-                zoomStart = Double(value.magnification)
+                if lastMagnification == nil { atlas.scene.beginInteraction() }
+                let previous = lastMagnification ?? 1
+                atlas.scene.camera.zoom(by: Double(value.magnification) / previous)
+                lastMagnification = Double(value.magnification)
+                atlas.wake()
             }
             .onEnded { _ in
-                zoomStart = nil
-                atlas.isInteracting = false
-                Haptics.tick()
+                lastMagnification = nil
+                atlas.scene.endInteraction(velocity: .zero)
+                atlas.wake()
             }
     }
 
@@ -354,11 +292,268 @@ struct AtlasView: View {
             AtlasNodeCard(node: node, atlas: atlas)
                 .padding(.horizontal, Theme.gutter)
                 .padding(.bottom, Dock.height + 16)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.opacity.combined(with: .offset(y: 12)))
                 .id(node.id)
         }
     }
 }
+
+// MARK: - Painter
+
+/// Draws one frame of the Atlas: motes, threads, then nodes from back to front.
+private struct AtlasPainter {
+    let scene: AtlasScene
+    let graph: AtlasGraph
+    let nodes: [AtlasNode]
+    let selected: AtlasNodeID?
+    let expanded: Set<AtlasNodeID>
+
+    private struct Placed {
+        var node: AtlasNode
+        var proj: AtlasCamera.Projected
+        var point: CGPoint
+    }
+
+    func draw(in context: inout GraphicsContext, size: CGSize) {
+        let camera = scene.camera
+        let origin = CGPoint(x: size.width / 2, y: size.height / 2 + 24)
+        func screen(_ p: AtlasCamera.Projected) -> CGPoint { CGPoint(x: origin.x + CGFloat(p.x), y: origin.y + CGFloat(p.y)) }
+
+        var placed: [AtlasNodeID: Placed] = [:]
+        for node in nodes {
+            guard let p = scene.position(node.id), let proj = camera.project(p) else { continue }
+            placed[node.id] = Placed(node: node, proj: proj, point: screen(proj))
+        }
+        let focus: Set<AtlasNodeID> = selected.map { Set(graph.neighbors(of: $0)).union([$0]) } ?? []
+        let morph = scene.morphEased
+
+        drawDust(in: &context, camera: camera, screen: screen, fade: 1 - morph)
+        if morph > 0.01 { drawRuler(in: &context, size: size, camera: camera, screen: screen, alpha: morph) }
+        drawEdges(in: &context, placed: placed, camera: camera, morph: morph)
+
+        var hits: [AtlasNodeID: AtlasScene.ScreenNode] = [:]
+        let ordered = placed.values.sorted { $0.proj.depth > $1.proj.depth }
+        for item in ordered {
+            let radius = drawNode(item, in: &context, camera: camera, focus: focus)
+            hits[item.node.id] = AtlasScene.ScreenNode(center: item.point, radius: radius, depth: item.proj.depth)
+        }
+        scene.screen = hits
+    }
+
+    // MARK: Layers
+
+    private func drawDust(in context: inout GraphicsContext, camera: AtlasCamera, screen: (AtlasCamera.Projected) -> CGPoint, fade: Double) {
+        guard fade > 0.01 else { return }
+        for mote in scene.dust {
+            guard let p = camera.project(mote + camera.target) else { continue }
+            let near = min(1, max(0, 1.4 - p.depth / (camera.distance + 900)))
+            let r = CGFloat(0.6 + near * 1.1)
+            let pt = screen(p)
+            context.fill(Path(ellipseIn: CGRect(x: pt.x - r, y: pt.y - r, width: r * 2, height: r * 2)),
+                         with: .color(Theme.textPrimary.opacity((0.05 + near * 0.13) * fade)))
+        }
+    }
+
+    /// Year ruler across the top of the canvas, with faint guides down each column.
+    private func drawRuler(in context: inout GraphicsContext, size: CGSize, camera: AtlasCamera, screen: (AtlasCamera.Projected) -> CGPoint, alpha: Double) {
+        let timeline = scene.timeline
+        let rulerY: CGFloat = 168
+        var lastLabelX = -CGFloat.infinity
+        for tick in timeline.ticks {
+            guard let p = camera.project(Vec3(tick.x, timeline.axisY, 0)) else { continue }
+            let x = screen(p).x
+            guard x > -40, x < size.width + 40 else { continue }
+            var guide = Path()
+            guide.move(to: CGPoint(x: x, y: rulerY + 12))
+            guide.addLine(to: CGPoint(x: x, y: size.height))
+            context.stroke(guide, with: .color(Theme.textPrimary.opacity(0.05 * alpha)), lineWidth: 1)
+            // Skip labels that would collide when zoomed out.
+            guard x - lastLabelX > 34 else { continue }
+            lastLabelX = x
+            let label = tick.year.map(String.init) ?? "Later"
+            let text = context.resolve(Text(label).font(.system(size: 12, weight: .semibold, design: .serif)).foregroundStyle(Theme.textSecondary.opacity(alpha)))
+            context.draw(text, at: CGPoint(x: x, y: rulerY), anchor: .center)
+        }
+    }
+
+    private func drawEdges(in context: inout GraphicsContext, placed: [AtlasNodeID: Placed], camera: AtlasCamera, morph: Double) {
+        let selectedTint = graph.nodes[selected ?? AtlasNodeID(.anime, -1)]?.tint ?? Theme.accent
+        var focusEdges: [(CGPoint, CGPoint, CGPoint, AtlasEdge)] = []
+        for edge in graph.edges {
+            guard let a = placed[edge.a], let b = placed[edge.b] else { continue }
+            let birth = min(scene.birthProgress(edge.a), scene.birthProgress(edge.b))
+            guard birth > 0.02 else { continue }
+            var pa = a.point, pb = b.point
+            let isFocus = selected != nil && (edge.a == selected || edge.b == selected)
+            if isFocus && edge.b == selected { swap(&pa, &pb) }
+            let control = Self.control(pa, pb, seed: edge.a.id &+ edge.b.id, bend: 0.16 * (1 - 0.6 * morph))
+            var path = Path()
+            path.move(to: pa)
+            path.addQuadCurve(to: pb, control: control)
+            let depth = (a.proj.depth + b.proj.depth) / 2
+            let fog = min(1, max(0.2, 1.6 - depth / camera.distance))
+            if isFocus {
+                context.stroke(path, with: .color(selectedTint.opacity(0.7 * birth)), lineWidth: 1.3)
+                focusEdges.append((pa, control, pb, edge))
+            } else {
+                let base = selected == nil ? 0.17 : 0.05
+                context.stroke(path, with: .color(Theme.textPrimary.opacity(base * fog * birth)),
+                               lineWidth: CGFloat(0.6 + edge.strength * 0.35))
+            }
+        }
+
+        // Pulses travel outward from the focused node; labels sit on the thread.
+        for (index, item) in focusEdges.enumerated() {
+            let (pa, control, pb, edge) = item
+            if scene.pulses {
+                let phase = (scene.time * 0.42 + Double(index) * 0.137).truncatingRemainder(dividingBy: 1)
+                let pt = Self.point(on: pa, control, pb, t: phase)
+                let fade = sin(phase * .pi)
+                context.fill(Path(ellipseIn: CGRect(x: pt.x - 2.2, y: pt.y - 2.2, width: 4.4, height: 4.4)),
+                             with: .color(selectedTint.opacity(0.9 * fade)))
+            }
+            if focusEdges.count <= 14 {
+                let mid = Self.point(on: pa, control, pb, t: 0.5)
+                let text = context.resolve(Text(edge.label).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.textSecondary))
+                let measured = text.measure(in: CGSize(width: 160, height: 20))
+                let pill = CGRect(x: mid.x - measured.width / 2 - 6, y: mid.y - measured.height / 2 - 2.5,
+                                  width: measured.width + 12, height: measured.height + 5)
+                context.fill(Path(roundedRect: pill, cornerRadius: pill.height / 2), with: .color(Theme.ink0.opacity(0.85)))
+                context.draw(text, at: mid)
+            }
+        }
+    }
+
+    /// Draws a node and returns its hit radius.
+    private func drawNode(_ item: Placed, in context: inout GraphicsContext, camera: AtlasCamera, focus: Set<AtlasNodeID>) -> CGFloat {
+        let node = item.node
+        let id = node.id
+        let isSelected = id == selected
+        let birth = scene.birthProgress(id)
+        let emphasis = isSelected ? scene.selectionProgress : 0
+        let scale = CGFloat(min(2.2, max(0.35, item.proj.scale))) * CGFloat(0.45 + 0.55 * birth) * CGFloat(1 + 0.12 * emphasis)
+        let fog = min(1, max(0.3, 1.55 - item.proj.depth / camera.distance))
+        let dimmed = selected != nil && !focus.contains(id)
+        var layer = context
+        layer.opacity = (dimmed ? 0.28 : 1) * fog * birth
+        let c = item.point
+        let weight = CGFloat(0.8 + min(1.5, node.weight) * 0.2)
+        let showLabel = isSelected || (selected != nil && focus.contains(id)) || (selected == nil && scale > 0.85)
+
+        switch id.kind {
+        case .anime, .manga:
+            let w = 27 * scale * weight, h = w * 1.45
+            let rect = CGRect(x: c.x - w / 2, y: c.y - h / 2, width: w, height: h)
+            let shape = Path(roundedRect: rect, cornerRadius: max(2, 3.5 * scale))
+            if node.isSpoilerHidden {
+                layer.fill(shape, with: .color(Theme.ink2))
+                drawGlyph("eye.slash", in: rect, layer: &layer)
+            } else if let symbol = layer.resolveSymbol(id: id) {
+                layer.clipToLayer { clip in clip.fill(shape, with: .color(.black)) }
+                layer.draw(symbol, in: rect)
+                layer = context
+                layer.opacity = (dimmed ? 0.28 : 1) * fog * birth
+            } else {
+                layer.fill(shape, with: .color(node.tint.opacity(0.85)))
+                drawGlyph(id.kind.symbol, in: rect, layer: &layer, color: Theme.ink0.opacity(0.7))
+            }
+            layer.stroke(shape, with: .color(isSelected ? Theme.textPrimary : Theme.textPrimary.opacity(0.16)), lineWidth: isSelected ? 1.5 : 0.6)
+            if !expanded.contains(id) && !node.isSpoilerHidden {
+                let r = max(2, 2.6 * scale)
+                layer.fill(Path(ellipseIn: CGRect(x: rect.maxX - r * 1.2, y: rect.minY - r * 0.8, width: r * 2, height: r * 2)),
+                           with: .color(Theme.accent))
+            }
+            if showLabel { drawLabel(node.title, below: rect.maxY, x: c.x, scale: scale, strong: isSelected, layer: &layer) }
+            return max(w, h) / 2
+
+        case .character, .creator:
+            let r = 12.5 * scale * weight
+            let rect = CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
+            let shape = Path(ellipseIn: rect)
+            if node.isSpoilerHidden {
+                layer.fill(shape, with: .color(Theme.ink2))
+                drawGlyph("eye.slash", in: rect, layer: &layer)
+            } else if let symbol = layer.resolveSymbol(id: id) {
+                layer.draw(symbol, in: rect)
+            } else {
+                layer.fill(shape, with: .color(Theme.ink2))
+                drawGlyph(id.kind.symbol, in: rect, layer: &layer, color: id.kind.tint)
+            }
+            layer.stroke(shape, with: .color(isSelected ? Theme.textPrimary : id.kind.tint.opacity(0.55)), lineWidth: isSelected ? 1.5 : 0.8)
+            if showLabel { drawLabel(node.title, below: rect.maxY, x: c.x, scale: scale, strong: isSelected, layer: &layer) }
+            return r
+
+        case .studio, .theme:
+            let isTheme = id.kind == .theme
+            let size = max(8.5, (isTheme ? 10 : 11) * min(scale, 1.3))
+            let label = isTheme ? "#" + node.title : node.title
+            let text = layer.resolve(Text(label).font(.system(size: size, weight: isTheme ? .medium : .semibold))
+                .foregroundStyle(isTheme ? Theme.textSecondary : Theme.textPrimary))
+            let measured = text.measure(in: CGSize(width: 220, height: 40))
+            let pill = CGRect(x: c.x - measured.width / 2 - 8, y: c.y - measured.height / 2 - 4, width: measured.width + 16, height: measured.height + 8)
+            let shape = Path(roundedRect: pill, cornerRadius: isTheme ? pill.height / 2 : 4)
+            if !isTheme { layer.fill(shape, with: .color(Theme.ink1.opacity(0.92))) }
+            layer.stroke(shape, with: .color(isSelected ? Theme.textPrimary : Theme.textPrimary.opacity(isTheme ? 0.14 : 0.2)), lineWidth: isSelected ? 1.4 : 0.7)
+            layer.draw(text, at: c)
+            return max(pill.width, pill.height) / 2
+        }
+    }
+
+    private func drawGlyph(_ name: String, in rect: CGRect, layer: inout GraphicsContext, color: Color = Theme.textTertiary) {
+        var glyph = layer.resolve(Image(systemName: name))
+        glyph.shading = .color(color)
+        let side = min(rect.width, rect.height) * 0.42
+        layer.draw(glyph, in: CGRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side))
+    }
+
+    private func drawLabel(_ title: String, below y: CGFloat, x: CGFloat, scale: CGFloat, strong: Bool, layer: inout GraphicsContext) {
+        let short = title.count > 22 ? String(title.prefix(21)) + "…" : title
+        let text = layer.resolve(Text(short)
+            .font(.system(size: max(9.5, 10.5 * min(scale, 1.25)), weight: strong ? .semibold : .medium))
+            .foregroundStyle(strong ? Theme.textPrimary : Theme.textSecondary))
+        layer.draw(text, at: CGPoint(x: x, y: y + 4), anchor: .top)
+    }
+
+    // MARK: Geometry
+
+    static func control(_ a: CGPoint, _ b: CGPoint, seed: Int, bend: Double) -> CGPoint {
+        let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+        let dx = b.x - a.x, dy = b.y - a.y
+        let sign: CGFloat = seed % 2 == 0 ? 1 : -1
+        let k = CGFloat(bend) * sign
+        return CGPoint(x: mid.x - dy * k, y: mid.y + dx * k)
+    }
+
+    static func point(on a: CGPoint, _ c: CGPoint, _ b: CGPoint, t: Double) -> CGPoint {
+        let t = CGFloat(t), u = 1 - t
+        return CGPoint(x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
+                       y: u * u * a.y + 2 * u * t * c.y + t * t * b.y)
+    }
+}
+
+/// The small mark used for each kind in the filter row: a tile for titles, a dot for
+/// people, a bar for studios and themes, matching how they're drawn on the map.
+private struct KindMark: View {
+    let kind: AtlasKind
+    let filled: Bool
+
+    var body: some View {
+        Group {
+            switch kind {
+            case .anime, .manga:
+                RoundedRectangle(cornerRadius: 1.5).frame(width: 7, height: 10)
+            case .character, .creator:
+                Circle().frame(width: 8, height: 8)
+            case .studio, .theme:
+                Capsule().frame(width: 11, height: 5)
+            }
+        }
+        .foregroundStyle(filled ? kind.tint : Theme.textTertiary.opacity(0.5))
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Selection card
 
 private struct AtlasNodeCard: View {
     let node: AtlasNode
@@ -369,22 +564,14 @@ private struct AtlasNodeCard: View {
     var body: some View {
         let bridges = atlas.graph.bridges(from: node.id, limit: 3)
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle().fill(node.tint.opacity(0.85))
-                    if node.isSpoilerHidden {
-                        Image(systemName: "eye.slash.fill").foregroundStyle(.black.opacity(0.7))
-                    } else if let url = node.imageURL {
-                        RemoteImage(url, points: 52).clipShape(Circle())
-                    } else {
-                        Image(systemName: node.id.kind.symbol).foregroundStyle(.black.opacity(0.7))
-                    }
-                }
-                .frame(width: 48, height: 48)
-                VStack(alignment: .leading, spacing: 2) {
-                    Eyebrow(text: node.id.kind.label, color: node.id.kind.tint)
+            HStack(alignment: .top, spacing: 12) {
+                thumbnail
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(node.id.kind.label.dropLast(node.id.kind == .anime || node.id.kind == .manga ? 0 : 1))
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(node.id.kind.tint)
                     Text(node.title)
-                        .font(.headline)
+                        .font(Typo.sectionTitle)
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
                     if let subtitle = node.subtitle, !subtitle.isEmpty {
@@ -396,7 +583,7 @@ private struct AtlasNodeCard: View {
                 }
                 Spacer(minLength: 0)
                 Button {
-                    withAnimation(Motion.standard) { atlas.selected = nil }
+                    withAnimation(Motion.standard) { atlas.select(nil) }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.bold))
@@ -408,18 +595,18 @@ private struct AtlasNodeCard: View {
 
             if !bridges.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Eyebrow(text: "Unexpected connections")
+                    Eyebrow(text: "Also connected")
                     ForEach(Array(bridges.enumerated()), id: \.offset) { pair in
                         let bridge = pair.element
                         Button {
-                            withAnimation(Motion.standard) { atlas.selected = bridge.0.id }
+                            withAnimation(Motion.standard) { atlas.select(bridge.0.id) }
                         } label: {
                             HStack(spacing: 6) {
                                 Text(bridge.0.title)
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(Theme.textPrimary)
                                     .lineLimit(1)
-                                Text("via " + bridge.1.prefix(2).map(\.title).joined(separator: ", "))
+                                Text("through " + bridge.1.prefix(2).map(\.title).joined(separator: " and "))
                                     .font(.caption)
                                     .foregroundStyle(Theme.textTertiary)
                                     .lineLimit(1)
@@ -433,35 +620,54 @@ private struct AtlasNodeCard: View {
             HStack(spacing: 10) {
                 if !node.isSpoilerHidden {
                     NavigationLink(value: node.route) {
-                        Label("Open", systemImage: "arrow.up.forward")
-                            .frame(maxWidth: .infinity)
+                        Text("Open").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(PrimaryButtonStyle(tint: node.tint))
+                    .buttonStyle(PrimaryButtonStyle())
                 }
                 if !atlas.isExpanded(node.id) && !node.isSpoilerHidden {
                     Button {
                         Task { await atlas.expand(node.id, using: model) }
                     } label: {
-                        if atlas.expanding.contains(node.id) {
-                            ProgressView().frame(maxWidth: .infinity)
-                        } else {
-                            Label("Expand", systemImage: "plus.circle")
-                                .frame(maxWidth: .infinity)
+                        Group {
+                            if atlas.expanding.contains(node.id) {
+                                ProgressView()
+                            } else {
+                                Text("Show connections")
+                            }
                         }
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(SecondaryButtonStyle())
                 }
                 Button {
-                    withAnimation(.easeInOut(duration: 0.45)) { atlas.center(on: node.id) }
+                    atlas.recenter()
                 } label: {
                     Image(systemName: "scope")
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .accessibilityLabel("Center map here")
+                .accessibilityLabel("Frame the map")
             }
         }
         .padding(16)
-        .surface(cornerRadius: 24, tint: node.tint)
+        .surface(tint: node.tint)
+    }
+
+    @ViewBuilder private var thumbnail: some View {
+        let isTitle = node.id.kind.isTitle
+        let shape = RoundedRectangle(cornerRadius: isTitle ? Theme.cornerCover : 26, style: .continuous)
+        ZStack {
+            shape.fill(Theme.ink2)
+            if node.isSpoilerHidden {
+                Image(systemName: "eye.slash").foregroundStyle(Theme.textTertiary)
+            } else if let url = node.imageURL {
+                RemoteImage(url, points: 72)
+            } else {
+                Image(systemName: node.id.kind.symbol).foregroundStyle(node.id.kind.tint)
+            }
+        }
+        .frame(width: isTitle ? 44 : 52, height: isTitle ? 64 : 52)
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(Theme.hairline))
     }
 }
 
@@ -492,14 +698,14 @@ private struct AtlasList: View {
                                     }
                                 }
                             }
-                            .listRowBackground(Color.white.opacity(0.04))
+                            .listRowBackground(Theme.ink1)
                             .swipeActions(edge: .trailing) {
                                 if !atlas.isExpanded(node.id) && !node.isSpoilerHidden {
                                     Button("Expand") { Task { await atlas.expand(node.id, using: model) } }
-                                        .tint(Theme.accent)
+                                        .tint(Theme.accentCool)
                                 }
                             }
-                            .accessibilityAction(named: "Expand connections") {
+                            .accessibilityAction(named: "Show connections") {
                                 Task { await atlas.expand(node.id, using: model) }
                             }
                         }

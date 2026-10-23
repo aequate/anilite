@@ -25,7 +25,7 @@ struct YouView: View {
                                 detail: "Your year so far", tint: Theme.accent)
                         YouTile(route: .achievements, symbol: "rosette", title: "Achievements",
                                 detail: "\(model.achievements.filter(\.isUnlocked).count) of \(model.achievements.count) unlocked", tint: Theme.caution)
-                        YouTile(route: .social, symbol: "person.2.wave.2", title: "Friends & Clubs",
+                        YouTile(route: .social, symbol: "person.2", title: "People",
                                 detail: socialDetail, tint: Theme.accentCool)
                         YouTile(route: .recap(currentYear - 1), symbol: "clock.arrow.circlepath", title: "\(String(currentYear - 1)) Recap",
                                 detail: "Look back", tint: Theme.positive)
@@ -37,7 +37,7 @@ struct YouView: View {
                     Divider().overlay(Theme.hairline)
                     RowLink(route: .settings, symbol: "gearshape", title: "Settings")
                 }
-                .surface(cornerRadius: 18)
+                .surface()
             }
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, 30)
@@ -47,10 +47,11 @@ struct YouView: View {
     }
 
     private var socialDetail: String {
-        let friends = model.friends.count
-        let clubs = model.clubs.count
-        if friends == 0 && clubs == 0 { return "Compare tastes, watch together" }
-        return "\(friends) friend\(friends == 1 ? "" : "s") · \(clubs) club\(clubs == 1 ? "" : "s")"
+        var parts: [String] = []
+        if !model.following.isEmpty { parts.append("\(model.following.count) following") }
+        if !model.friends.isEmpty { parts.append("\(model.friends.count) friend\(model.friends.count == 1 ? "" : "s")") }
+        if !model.clubs.isEmpty { parts.append("\(model.clubs.count) club\(model.clubs.count == 1 ? "" : "s")") }
+        return parts.isEmpty ? "Find people with your taste" : parts.joined(separator: " · ")
     }
 
     private var header: some View {
@@ -114,7 +115,7 @@ private struct StatBlock: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .surface(cornerRadius: 16)
+        .surface()
         .accessibilityElement(children: .combine)
     }
 }
@@ -143,7 +144,7 @@ private struct YouTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
             .padding(14)
-            .surface(cornerRadius: 18, tint: tint.opacity(0.25))
+            .surface(tint: tint.opacity(0.25))
         }
         .buttonStyle(PressableStyle())
     }

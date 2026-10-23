@@ -121,7 +121,7 @@ struct PathfinderView: View {
                     }
                 }
                 .padding(16)
-                .surface(cornerRadius: 20, tint: Theme.accentCool)
+                .surface(tint: Theme.accentCool)
             }
             PlanRouteButton(route: route)
             Text("Routes are built from AniList's relation data. Filler lists come from a hand-checked guide and cover the long-running shows that need one.")
@@ -204,7 +204,7 @@ private struct RouteSummary: View {
                         Image(systemName: "chevron.right").foregroundStyle(Theme.textTertiary)
                     }
                     .padding(12)
-                    .surface(cornerRadius: 16, interactive: true)
+                    .surface(interactive: true)
                 }
                 .buttonStyle(PressableStyle(scale: 0.98))
             }
@@ -251,7 +251,7 @@ private struct StepRow: View {
                 }
                 if !isLast {
                     Rectangle()
-                        .fill(LinearGradient(colors: [tint.opacity(0.6), Theme.hairline], startPoint: .top, endPoint: .bottom))
+                        .fill(tint.opacity(0.35))
                         .frame(width: 2)
                         .frame(maxHeight: .infinity)
                 }

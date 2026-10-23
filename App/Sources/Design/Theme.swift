@@ -40,9 +40,18 @@ enum Theme {
     static let cornerCover: CGFloat = 5
     static let gutter: CGFloat = 20
 
-    /// Marbling pigments for screens without a single title: ai indigo, asagi teal and
-    /// kincha ochre floating on sumi.
+    /// Interface tint before a title's artwork colours arrive. The accent doubles as text
+    /// and button colour, so it has to stay readable on the ground.
     static let defaultPalette = ArtworkPalette(
+        accent: RGB(r: 0.894, g: 0.706, b: 0.298),
+        deep: RGB(r: 0.067, g: 0.063, b: 0.059),
+        glow: RGB(r: 0.31, g: 0.686, b: 0.737),
+        secondary: RGB(r: 0.58, g: 0.45, b: 0.22)
+    )
+
+    /// Marbling pigments for screens without a single title: ai indigo, asagi teal and
+    /// kincha ochre floating on sumi. Backdrop only, never text.
+    static let inkPalette = ArtworkPalette(
         accent: RGB(r: 0.20, g: 0.36, b: 0.56),
         deep: RGB(r: 0.067, g: 0.063, b: 0.059),
         glow: RGB(r: 0.17, g: 0.50, b: 0.54),
@@ -88,7 +97,8 @@ enum Typo {
         .system(size: size, weight: .bold, design: .serif)
     }
 
-    static let screenTitle = Font.system(.largeTitle, design: .serif, weight: .bold)
+    /// Tab titles: set large, like a chapter heading.
+    static let screenTitle = Font.system(size: 42, weight: .bold, design: .serif)
     static let sectionTitle = Font.system(.title3, design: .serif, weight: .semibold)
     static let cardTitle = Font.system(.subheadline, design: .default, weight: .semibold)
     static let body = Font.system(.body)

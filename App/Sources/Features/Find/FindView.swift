@@ -22,7 +22,11 @@ struct FindView: View {
             case .moodMatch: MoodMatchView()
             }
         }
-        .background { ScreenBackground(atmosphere: .night, intensity: 0.5) }
+        .background {
+            // Once there are results, the page takes on the best match.
+            let lead = mode == .ask ? (find.seed ?? find.titleMatches.first ?? find.results.first) : nil
+            ScreenBackground(atmosphere: .night, intensity: 0.5, artwork: lead?.backdropArtwork, artworkHint: lead?.coverImage?.color)
+        }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: consumePending)
         .onChange(of: router.pendingSearch) { _, _ in consumePending() }
@@ -78,7 +82,7 @@ struct FindView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 13)
-        .surface(cornerRadius: 20, interactive: true)
+        .surface(interactive: true)
     }
 
     @ViewBuilder private var askContent: some View {
@@ -293,7 +297,7 @@ private struct SuggestionsView: View {
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 14)
-                        .surface(cornerRadius: 16)
+                        .surface()
                     }
                     .buttonStyle(PressableStyle(scale: 0.98))
                 }
@@ -308,7 +312,7 @@ private struct SuggestionsView: View {
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(Theme.textPrimary)
                                 .frame(maxWidth: .infinity, minHeight: 52)
-                                .surface(cornerRadius: 14)
+                                .surface()
                         }
                         .buttonStyle(PressableStyle())
                     }

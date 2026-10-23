@@ -131,7 +131,7 @@ struct VibeSection: View {
             }
         }
         .padding(16)
-        .surface(cornerRadius: 20)
+        .surface()
         .onAppear {
             if reduceMotion { grown = true } else {
                 withAnimation(Motion.reveal.delay(0.15)) { grown = true }
@@ -265,7 +265,7 @@ private struct WhereRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .surface(cornerRadius: 16, interactive: true)
+        .surface(interactive: true)
         .opacity(option.availability == .discontinued ? 0.55 : 1)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens \(option.site)")
@@ -315,7 +315,7 @@ struct PathfinderTeaser: View {
                         .foregroundStyle(Theme.textTertiary)
                 }
                 .padding(16)
-                .surface(cornerRadius: 20, tint: tint, interactive: true)
+                .surface(tint: tint, interactive: true)
             }
             .buttonStyle(PressableStyle(scale: 0.98))
         }
@@ -462,7 +462,7 @@ struct EpisodesSection: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .surface(cornerRadius: 16)
+        .surface()
     }
 
     private func setProgress(_ number: Int, total: Int?) {
@@ -864,7 +864,7 @@ struct StatsSection: View {
                 }
             }
             .padding(16)
-            .surface(cornerRadius: 20)
+            .surface()
         }
     }
 
@@ -950,7 +950,7 @@ struct JournalNoteRow: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .surface(cornerRadius: 16)
+        .surface()
         .accessibilityElement(children: .combine)
     }
 

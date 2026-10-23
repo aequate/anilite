@@ -35,6 +35,7 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: Anilite
+        NSCameraUsageDescription: Anilite uses the camera only to scan friend codes. Nothing is recorded or uploaded.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true

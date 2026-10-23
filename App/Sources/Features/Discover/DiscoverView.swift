@@ -4,6 +4,7 @@ import AniliteKit
 struct DiscoverView: View {
     @Environment(AppModel.self) private var model
     @State private var heroAtmosphere: Atmosphere = .brand
+    @State private var heroArtwork: String?
 
     var body: some View {
         ScrollView {
@@ -12,7 +13,7 @@ struct DiscoverView: View {
                     .padding(.horizontal, Theme.gutter)
 
                 if let home = model.home {
-                    HeroCarousel(items: Array(home.trending.media.prefix(6)), atmosphere: $heroAtmosphere)
+                    HeroCarousel(items: Array(home.trending.media.prefix(6)), atmosphere: $heroAtmosphere, artwork: $heroArtwork)
                     TonightSection()
                     ContinueSection()
                     MoodSection()
@@ -41,14 +42,8 @@ struct DiscoverView: View {
         .scrollIndicators(.hidden)
         .refreshable { await model.refreshAll() }
         .background {
-            ZStack {
-                Theme.ink0
-                AtmosphereView(atmosphere: heroAtmosphere, intensity: 0.85)
-                    .frame(height: 560)
-                    .mask(LinearGradient(colors: [.black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
-                    .frame(maxHeight: .infinity, alignment: .top)
-            }
-            .ignoresSafeArea()
+            // The page wears the card you're looking at: swipe the carousel and it follows.
+            ArtworkBackdrop(artwork: heroArtwork, atmosphere: heroAtmosphere, intensity: 0.85)
         }
         .toolbar(.hidden, for: .navigationBar)
     }
@@ -114,6 +109,7 @@ private struct DiscoverHeader: View {
 private struct HeroCarousel: View {
     let items: [Media]
     @Binding var atmosphere: Atmosphere
+    @Binding var artwork: String?
 
     @Environment(AppModel.self) private var model
     @Environment(EffectsBudget.self) private var budget
@@ -142,6 +138,7 @@ private struct HeroCarousel: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.9)) {
                 atmosphere = Atmosphere.resolve(for: media, palette: palette)
+                artwork = media.backdropArtwork
             }
             ImagePipeline.shared.prefetch(items.compactMap { $0.bannerImage ?? $0.coverImage?.best }, points: 420)
         }
@@ -287,7 +284,7 @@ private struct TonightCard: View {
             }
             .padding(12)
             .frame(width: 290, height: 120)
-            .surface(cornerRadius: 20, tint: Color(anilistHex: pick.media.coverImage?.color))
+            .surface(tint: Color(anilistHex: pick.media.coverImage?.color))
         }
         .buttonStyle(PressableStyle())
         .contextMenu { MediaQuickActions(media: pick.media) }
@@ -382,7 +379,7 @@ struct ContinueCard: View {
         }
         .padding(12)
         .frame(width: 270)
-        .surface(cornerRadius: 20, tint: tint)
+        .surface(tint: tint)
         .contextMenu { MediaQuickActions(media: media) }
     }
 
@@ -429,7 +426,7 @@ private struct MoodSection: View {
                             }
                             .padding(14)
                             .frame(width: 150, height: 118, alignment: .topLeading)
-                            .surface(cornerRadius: 18)
+                            .surface()
                         }
                         .buttonStyle(PressableStyle())
                         .accessibilityLabel("\(mood.label): \(mood.blurb)")

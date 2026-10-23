@@ -58,7 +58,7 @@ struct TasteDNAView: View {
                 }
             }
             .padding(16)
-            .surface(cornerRadius: 20)
+            .surface()
         }
     }
 
@@ -174,7 +174,7 @@ struct TasteDNAView: View {
                         }
                     }
                     .padding(12)
-                    .surface(cornerRadius: 16)
+                    .surface()
                     .accessibilityElement(children: .combine)
                 }
             }
@@ -217,7 +217,7 @@ private struct HabitTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .surface(cornerRadius: 16)
+        .surface()
         .accessibilityElement(children: .combine)
     }
 }
@@ -249,7 +249,7 @@ struct AchievementsView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
                         ForEach(locked) { achievement in
                             AchievementBody(achievement: achievement)
-                                .surface(cornerRadius: 20)
+                                .surface()
                         }
                     }
                 }

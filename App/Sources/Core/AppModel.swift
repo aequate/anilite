@@ -26,6 +26,11 @@ final class AppModel {
     private(set) var clubs: [Club] = []
     private(set) var savedLists: [SharedList] = []
     private(set) var friends: [TasteFingerprint] = []
+    // People you follow on AniList, and people whose taste overlaps yours. Not persisted.
+    private(set) var following: [AniListUser] = []
+    private(set) var followingState: LoadState = .idle
+    private(set) var suggestions: [PersonSuggestion] = []
+    private(set) var suggestionsState: LoadState = .idle
     private(set) var unlockedSpoilers: Set<Int> = []
     private(set) var recentSearches: [String] = []
 
@@ -599,6 +604,110 @@ final class AppModel {
         persist(recentSearches, key: Keys.recents)
     }
 
+    // MARK: - People
+
+    /// The AniList id behind the current library, when there is one.
+    var viewerId: Int? {
+        if case .connected(let id, _) = account { return id }
+        return library.user?.id
+    }
+
+    var canFollow: Bool { account.isConnected && !sessionExpired }
+
+    func isFollowing(_ name: String) -> Bool {
+        following.contains { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    func isFriend(_ name: String) -> Bool {
+        friends.contains { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    func refreshFollowing(force: Bool = false) async {
+        guard let id = viewerId, followingState != .loading else { return }
+        if followingState == .loaded && !force { return }
+        followingState = .loading
+        var all: [AniListUser] = []
+        do {
+            for page in 1...4 {
+                let response = try await client.fetch(Queries.following(userId: id, page: page), policy: force ? .networkFirst : .cacheFirst)
+                all.append(contentsOf: response.Page.people)
+                if response.Page.pageInfo?.hasNextPage != true { break }
+            }
+            following = all
+            followingState = .loaded
+        } catch {
+            followingState = .failed(AppModel.message(for: error))
+        }
+    }
+
+    /// Follows or unfollows on AniList. Returns the new state, or nil if it failed.
+    @discardableResult
+    func toggleFollow(_ user: AniListUser) async -> Bool? {
+        guard canFollow else {
+            showBanner("Connect your AniList account to follow people.")
+            return nil
+        }
+        let wasFollowing = isFollowing(user.name)
+        // Optimistic: flip it now, put it back if AniList says no.
+        if wasFollowing { following.removeAll { $0.id == user.id } } else { following.insert(user, at: 0) }
+        do {
+            let state = try await client.fetch(Queries.toggleFollow(userId: user.id), policy: .networkOnly).ToggleFollow
+            let now = state.isFollowing ?? !wasFollowing
+            following.removeAll { $0.id == user.id }
+            if now { following.insert(user, at: 0) }
+            await client.invalidate(Queries.userProfile(name: user.name))
+            if let id = viewerId { await client.invalidate(Queries.following(userId: id)) }
+            suggestions.removeAll { $0.user.id == user.id && now }
+            Haptics.success()
+            return now
+        } catch {
+            following.removeAll { $0.id == user.id }
+            if wasFollowing { following.insert(user, at: 0) }
+            showBanner(AppModel.message(for: error))
+            Haptics.warning()
+            return nil
+        }
+    }
+
+    /// Finds people who reviewed, finished or are watching the titles you rated highest.
+    func loadSuggestions(force: Bool = false) async {
+        guard suggestionsState != .loading else { return }
+        if suggestionsState == .loaded && !force { return }
+        let seeds = PeopleFinder.seeds(from: library)
+        guard !seeds.isEmpty else {
+            suggestions = []
+            suggestionsState = .failed("Score a few titles you loved and people with similar taste will show up here.")
+            return
+        }
+        suggestionsState = .loading
+        if viewerId != nil { await refreshFollowing() }
+        var excluded = Set(following.map { $0.name.lowercased() })
+        excluded.formUnion(friends.map { $0.name.lowercased() })
+        if let me = account.displayName ?? library.user?.name { excluded.insert(me.lowercased()) }
+        do {
+            let signals = try await client.fetch(Queries.peopleSignals(mediaIds: seeds.map(\.id)), policy: force ? .networkFirst : .cacheFirst)
+            suggestions = PeopleFinder.rank(signals: signals, seeds: seeds, excluding: excluded)
+            suggestionsState = .loaded
+        } catch {
+            suggestionsState = .failed(AppModel.message(for: error))
+        }
+    }
+
+    /// Builds a Taste DNA fingerprint from someone's public lists and keeps them as a friend.
+    func addFriend(named name: String) async {
+        do {
+            let response = try await client.fetch(Queries.lists(userName: name), policy: .cacheFirst)
+            let theirs = Library.from(anime: response.anime, manga: response.manga, user: response.anime?.user ?? response.manga?.user, isReadOnly: true)
+            let display = theirs.user?.name ?? name
+            addFriend(TasteFingerprint(name: display, dna: TasteDNA.build(from: theirs.all)))
+            Haptics.success()
+            showBanner("\(display) is now in your friends.")
+        } catch {
+            showBanner(AppModel.message(for: error))
+            Haptics.warning()
+        }
+    }
+
     // MARK: - Deep links
 
     func handle(_ url: URL) {
@@ -615,7 +724,7 @@ final class AppModel {
         case .fingerprint(let fingerprint):
             router.sheet = .fingerprint(fingerprint)
         case .user(let name):
-            router.push(.compareUser(name), on: .you)
+            router.push(.person(name), on: .you)
         }
     }
 

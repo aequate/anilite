@@ -52,6 +52,8 @@ public struct AtlasNode: Hashable, Sendable, Identifiable {
     public var colorHex: String?
     public var isSpoilerHidden: Bool
     public var weight: Double
+    /// Release year, for titles. Drives the timeline layout.
+    public var year: Int? = nil
 }
 
 public struct AtlasEdge: Hashable, Sendable {
@@ -81,6 +83,7 @@ public struct AtlasGraph: Sendable {
         if var existing = nodes[node.id] {
             existing.weight = max(existing.weight, node.weight)
             if existing.imageURL == nil { existing.imageURL = node.imageURL }
+            if existing.year == nil { existing.year = node.year }
             nodes[node.id] = existing
             return true
         }
@@ -104,7 +107,8 @@ public struct AtlasGraph: Sendable {
             imageURL: hidden ? nil : m.coverImage?.thumbnail,
             colorHex: m.coverImage?.color,
             isSpoilerHidden: hidden,
-            weight: weight
+            weight: weight,
+            year: m.year
         )
     }
 
@@ -193,10 +197,10 @@ public struct Vec3: Hashable, Sendable {
     public var x: Double, y: Double, z: Double
     public init(_ x: Double, _ y: Double, _ z: Double) { self.x = x; self.y = y; self.z = z }
     public static let zero = Vec3(0, 0, 0)
-    static func + (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x + b.x, a.y + b.y, a.z + b.z) }
-    static func - (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x - b.x, a.y - b.y, a.z - b.z) }
-    static func * (a: Vec3, s: Double) -> Vec3 { Vec3(a.x * s, a.y * s, a.z * s) }
-    var length: Double { sqrt(x * x + y * y + z * z) }
+    public static func + (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x + b.x, a.y + b.y, a.z + b.z) }
+    public static func - (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x - b.x, a.y - b.y, a.z - b.z) }
+    public static func * (a: Vec3, s: Double) -> Vec3 { Vec3(a.x * s, a.y * s, a.z * s) }
+    public var length: Double { sqrt(x * x + y * y + z * z) }
 }
 
 /// Deterministic force-directed layout (springs + repulsion + centering) in 3D.

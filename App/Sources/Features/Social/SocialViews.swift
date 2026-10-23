@@ -1,10 +1,11 @@
 import SwiftUI
 import AniliteKit
 
-// MARK: - Social hub
+// MARK: - People hub
 
-/// Friends, clubs and shared lists. Sharing works through links that carry everything
-/// inside them, so there's no Anilite server and nothing to sign up for.
+/// Everyone around your library: people you follow on AniList, people the app thinks share
+/// your taste, friends added by Taste DNA, clubs and shared lists. Sharing works through
+/// links that carry everything inside them, so there's no Anilite server to sign up for.
 struct SocialView: View {
     @Environment(AppModel.self) private var model
     @Environment(Router.self) private var router
@@ -16,14 +17,17 @@ struct SocialView: View {
     var body: some View {
         List {
             Section {
-                myCard
+                identity
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
             }
 
             Section {
-                HStack {
-                    TextField("AniList username", text: $userQuery)
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Theme.textTertiary)
+                        .accessibilityHidden(true)
+                    TextField("Find someone by AniList name", text: $userQuery)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .submitLabel(.search)
@@ -31,33 +35,19 @@ struct SocialView: View {
                     if searching { ProgressView() }
                 }
                 ForEach(users) { user in
-                    NavigationLink(value: Route.compareUser(user.name)) {
-                        HStack(spacing: 12) {
-                            RemoteImage(user.avatar?.medium, points: 36)
-                                .frame(width: 36, height: 36)
-                                .clipShape(Circle())
-                                .accessibilityHidden(true)
-                            Text(user.name)
-                                .foregroundStyle(Theme.textPrimary)
-                        }
-                    }
+                    PersonRow(user: user, detail: model.isFollowing(user.name) ? "Following" : nil)
                 }
             } header: {
-                Text("Compare with an AniList user")
-            } footer: {
-                Text("Works with any public AniList profile. Spoiler protection still follows your own progress.")
+                Text("Find people")
             }
+            .listRowBackground(Theme.ink1)
+
+            followingSection
+            suggestionsSection
 
             Section {
-                HStack {
-                    TextField("Paste a Taste DNA code or link", text: $code)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("Add") { addFromCode() }
-                        .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
                 if model.friends.isEmpty {
-                    Text("Friends you add appear here with your compatibility.")
+                    Text("Add someone from their profile, a QR code or a Taste DNA link, and your compatibility shows up here.")
                         .font(.footnote)
                         .foregroundStyle(Theme.textTertiary)
                 }
@@ -65,7 +55,8 @@ struct SocialView: View {
                     Button {
                         router.sheet = .fingerprint(friend)
                     } label: {
-                        HStack {
+                        HStack(spacing: 12) {
+                            PersonAvatar(url: nil, name: friend.name, size: 40)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(friend.name)
                                     .foregroundStyle(Theme.textPrimary)
@@ -81,9 +72,20 @@ struct SocialView: View {
                         Button(role: .destructive) { model.removeFriend(named: friend.name) } label: { Label("Remove", systemImage: "trash") }
                     }
                 }
+                HStack {
+                    TextField("Paste a Taste DNA code or link", text: $code)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.subheadline)
+                    Button("Add") { addFromCode() }
+                        .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
             } header: {
                 Text("Friends")
+            } footer: {
+                Text("A friend is a Taste DNA snapshot kept on this phone. It works with or without AniList.")
             }
+            .listRowBackground(Theme.ink1)
 
             Section {
                 ForEach(model.clubs) { club in
@@ -94,13 +96,14 @@ struct SocialView: View {
                 Button {
                     router.sheet = .newClub(nil)
                 } label: {
-                    Label("Start a watch club", systemImage: "plus.circle.fill")
+                    Label("Start a watch club", systemImage: "plus")
                 }
             } header: {
                 Text("Watch & read clubs")
             } footer: {
                 Text("A club shares a schedule. Everyone sees the same spoiler line, so nobody gets ahead of the group by accident.")
             }
+            .listRowBackground(Theme.ink1)
 
             Section {
                 ForEach(model.savedLists) { list in
@@ -126,24 +129,137 @@ struct SocialView: View {
             } header: {
                 Text("Shared lists")
             }
+            .listRowBackground(Theme.ink1)
         }
         .scrollContentBackground(.hidden)
-        .screenChrome("Friends & Clubs")
+        .refreshable {
+            await model.refreshFollowing(force: true)
+            await model.loadSuggestions(force: true)
+        }
+        .task {
+            await model.refreshFollowing()
+            await model.loadSuggestions()
+        }
+        .screenChrome("People")
     }
 
-    private var myCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ArchetypeCard(dna: model.dna, name: model.account.displayName ?? "You")
-            if let link = ShareCodec.link(kind: "dna", code: model.myFingerprint.code) {
-                ShareLink(item: link, subject: Text("My Taste DNA"),
-                          message: Text("Open in Anilite to see how compatible our anime tastes are.")) {
-                    Label("Invite a friend to compare", systemImage: "person.badge.plus")
+    // MARK: Identity
+
+    private var identity: some View {
+        let name = model.account.displayName ?? "You"
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                PersonAvatar(url: model.library.user?.avatar?.large, name: name, size: 56)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(name)
+                        .font(Typo.display(24))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text(model.dna.isMeaningful ? model.myFingerprint.archetype : "Taste DNA still forming")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 10) {
+                Button {
+                    router.sheet = .myCode
+                } label: {
+                    Label("My code", systemImage: "qrcode")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryButtonStyle())
+                Button {
+                    router.sheet = .scanCode
+                } label: {
+                    Label("Scan", systemImage: "qrcode.viewfinder")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryButtonStyle())
             }
         }
-        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
+    }
+
+    // MARK: Following
+
+    @ViewBuilder
+    private var followingSection: some View {
+        if model.canFollow {
+            Section {
+                if model.following.isEmpty {
+                    Text(model.followingState.isLoading ? "Loading…" : "You aren't following anyone yet. People you follow on AniList show up here.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textTertiary)
+                } else {
+                    ScrollView(.horizontal) {
+                        LazyHStack(alignment: .top, spacing: 14) {
+                            ForEach(model.following.prefix(30)) { user in
+                                NavigationLink(value: Route.person(user.name)) {
+                                    VStack(spacing: 6) {
+                                        PersonAvatar(url: user.avatar?.medium, name: user.name, size: 52)
+                                        Text(user.name)
+                                            .font(Typo.caption)
+                                            .foregroundStyle(Theme.textSecondary)
+                                            .lineLimit(1)
+                                            .frame(width: 60)
+                                    }
+                                }
+                                .buttonStyle(PressableStyle())
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                    .scrollIndicators(.hidden)
+                    .listRowInsets(EdgeInsets())
+                    NavigationLink(value: Route.followingFeed) {
+                        Label("What they're watching", systemImage: "list.bullet.rectangle")
+                    }
+                }
+            } header: {
+                Text(model.following.isEmpty ? "Following" : "Following · \(model.following.count)")
+            }
+            .listRowBackground(Theme.ink1)
+        }
+    }
+
+    // MARK: Suggestions
+
+    private var suggestionsSection: some View {
+        Section {
+            if model.suggestions.isEmpty {
+                if model.suggestionsState.isLoading {
+                    ForEach(0..<3, id: \.self) { _ in
+                        HStack(spacing: 12) {
+                            Skeleton().frame(width: 44, height: 44).clipShape(Circle())
+                            Skeleton().frame(height: 14)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } else {
+                    Text(model.suggestionsState.errorMessage ?? "Nobody turned up this time. Pull to refresh, or score a few more titles.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            ForEach(model.suggestions.prefix(10)) { suggestion in
+                PersonRow(user: suggestion.user, detail: Self.sentenceCase(suggestion.summary)) {
+                    if model.canFollow {
+                        FollowButton(user: suggestion.user, compact: true)
+                    }
+                }
+            }
+        } header: {
+            Text("People with your taste")
+        } footer: {
+            Text("Found through public AniList reviews and list activity on the titles you scored highest.")
+        }
+        .listRowBackground(Theme.ink1)
+    }
+
+    private static func sentenceCase(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return String(first).uppercased() + String(text.dropFirst())
     }
 
     private func addFromCode() {
@@ -456,7 +572,7 @@ private struct ClubContent: View {
                     }
                 }
                 .padding(16)
-                .surface(cornerRadius: 20)
+                .surface()
 
                 if !club.members.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {

@@ -80,6 +80,9 @@ public struct GraphQLOperation<Response: Decodable & Sendable>: Sendable {
     public var ttl: TimeInterval
     public var isMutation: Bool
     public var requiresAuth: Bool
+    /// Sends the viewer's token when there is one, without requiring it. Used for public
+    /// data that has viewer-specific fields, like whether you follow a profile.
+    public var attachesToken = false
 
     public init(name: String, query: String, variables: Variables = Variables(), ttl: TimeInterval = 600, isMutation: Bool = false, requiresAuth: Bool = false) {
         self.name = name

@@ -158,7 +158,7 @@ public actor AniListClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        if op.requiresAuth, let token {
+        if op.requiresAuth || op.attachesToken, let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.httpBody = try encoder.encode(GraphQLRequestBody(query: op.query, variables: op.variables))

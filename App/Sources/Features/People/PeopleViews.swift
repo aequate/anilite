@@ -60,6 +60,7 @@ private struct CharacterContent: View {
             .padding(.bottom, 30)
         }
         .scrollIndicators(.hidden)
+        .background { ScreenBackground(artwork: character.image?.best ?? works.first?.0.backdropArtwork) }
     }
 
     private func roleLabel(_ role: CharacterRole) -> String {
@@ -116,6 +117,9 @@ private struct StaffContent: View {
             .padding(.bottom, 30)
         }
         .scrollIndicators(.hidden)
+        // Their best-known work says more about them than a headshot does.
+        .background { ScreenBackground(artwork: works.first?.backdropArtwork ?? staff.image?.best,
+                                       artworkHint: works.first?.coverImage?.color) }
     }
 }
 
@@ -134,7 +138,8 @@ struct StudioView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Eyebrow(text: studio.isAnimationStudio == true ? "Animation studio" : "Studio")
                         Text(studio.name)
-                            .font(Typo.display(30))
+                            .font(Typo.display(40))
+                            .minimumScaleFactor(0.6)
                             .foregroundStyle(Theme.textPrimary)
                         StudioSummary(works: studio.media?.nodes ?? [])
                     }
@@ -146,6 +151,10 @@ struct StudioView: View {
                 .padding(.bottom, 30)
             }
             .scrollIndicators(.hidden)
+            .background {
+                let lead = (studio.media?.nodes ?? []).first { !($0.isAdult ?? false) }
+                ScreenBackground(artwork: lead?.backdropArtwork, artworkHint: lead?.coverImage?.color)
+            }
         }
         .screenChrome("Studio")
     }
@@ -252,14 +261,16 @@ private struct PersonHeader: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 16) {
-            RemoteImage(imageURL, points: 130)
-                .frame(width: 112, height: 150)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.hairline))
+            RemoteImage(imageURL, points: 150)
+                .frame(width: 120, height: 164)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous).strokeBorder(Theme.hairline))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 6) {
                 Text(name)
-                    .font(Typo.display(26))
+                    .font(Typo.display(36))
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(3)
                     .foregroundStyle(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let native, !native.isEmpty {

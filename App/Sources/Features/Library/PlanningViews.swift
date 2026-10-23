@@ -125,7 +125,7 @@ struct PlannerView: View {
             }
         }
         .padding(16)
-        .surface(cornerRadius: 20)
+        .surface()
     }
 
     private func finishList(_ plan: BingePlan, items: [PlanItem]) -> some View {
@@ -199,7 +199,7 @@ struct PlannerView: View {
                     }
                 }
                 .padding(12)
-                .surface(cornerRadius: 16)
+                .surface()
             }
         }
     }

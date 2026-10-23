@@ -47,6 +47,9 @@ enum Route: Hashable {
     case tasteDNA
     case social
     case compareUser(String)
+    case person(String)
+    case followingFeed
+    case follows(userId: Int, name: String, followers: Bool)
     case club(String)
     case glossary
     case settings
@@ -64,6 +67,8 @@ enum SheetRoute: Identifiable {
     case newClub(Media?)
     case newShelf
     case shareList
+    case myCode
+    case scanCode
 
     var id: String {
         switch self {
@@ -76,6 +81,8 @@ enum SheetRoute: Identifiable {
         case .newClub(let m): return "newclub-\(m?.id ?? 0)"
         case .newShelf: return "newshelf"
         case .shareList: return "sharelist"
+        case .myCode: return "mycode"
+        case .scanCode: return "scancode"
         }
     }
 }

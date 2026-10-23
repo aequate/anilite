@@ -136,7 +136,7 @@ struct OnboardingView: View {
                         }
                     }
                     .padding(14)
-                    .surface(cornerRadius: 16)
+                    .surface()
                     if let profileError {
                         Text(profileError).font(.footnote).foregroundStyle(Theme.negative)
                     }
