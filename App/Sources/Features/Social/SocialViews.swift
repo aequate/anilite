@@ -140,7 +140,7 @@ struct SocialView: View {
                     Label("Invite a friend to compare", systemImage: "person.badge.plus")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
             }
         }
         .padding(.vertical, 6)
@@ -195,7 +195,7 @@ struct CompatibilityBadge: View {
     private var tint: Color {
         switch score {
         case 75...: return Theme.positive
-        case 50..<75: return Theme.brandCool
+        case 50..<75: return Theme.accentCool
         case 30..<50: return Theme.caution
         default: return Theme.negative
         }
@@ -266,7 +266,7 @@ private struct CompareContent: View {
             VStack(alignment: .leading, spacing: 24) {
                 HStack(spacing: 18) {
                     ZStack {
-                        ProgressRing(progress: Double(report.score) / 100, tint: Theme.brand, lineWidth: 8)
+                        ProgressRing(progress: Double(report.score) / 100, tint: Theme.accent, lineWidth: 8)
                         Text("\(report.score)%")
                             .font(Typo.metric)
                             .foregroundStyle(Theme.textPrimary)
@@ -358,7 +358,7 @@ private struct CompareContent: View {
                     Label(model.friends.contains { $0.name == name } ? "Update friend" : "Add \(name) as a friend", systemImage: "person.badge.plus")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
             }
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, 30)
@@ -438,7 +438,7 @@ private struct ClubContent: View {
                     if let next {
                         Text("Next: \(next.date.formatted(.dateTime.weekday(.wide).month().day())) · \(unit)\(next.units.count > 1 ? "s" : "") \(next.units.lowerBound)–\(next.units.upperBound)")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.brandCool)
+                            .foregroundStyle(Theme.accentCool)
                     } else if !sessions.isEmpty {
                         Text("The club has finished. Nice work!")
                             .font(.subheadline.weight(.semibold))
@@ -452,11 +452,11 @@ private struct ClubContent: View {
                                 }
                             }
                         }
-                        .buttonStyle(GhostButtonStyle())
+                        .buttonStyle(SecondaryButtonStyle())
                     }
                 }
                 .padding(16)
-                .glassSurface(cornerRadius: 20)
+                .surface(cornerRadius: 20)
 
                 if !club.members.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -492,10 +492,10 @@ private struct ClubContent: View {
                                   message: Text("Join my \(club.mediaTitle) club on Anilite. We'll keep spoilers in sync.")) {
                             Label("Invite", systemImage: "person.badge.plus")
                         }
-                        .buttonStyle(GlowButtonStyle())
+                        .buttonStyle(PrimaryButtonStyle())
                     }
                     Button("Leave", role: .destructive) { confirmLeave = true }
-                        .buttonStyle(GhostButtonStyle())
+                        .buttonStyle(SecondaryButtonStyle())
                 }
             }
             .padding(.horizontal, Theme.gutter)

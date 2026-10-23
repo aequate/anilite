@@ -47,7 +47,7 @@ final class PathfinderModel {
                     }
                 }
                 self.graph = graph
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                withAnimation(Motion.gentle) {
                     routes = Pathfinder.routes(for: graph)
                 }
             }
@@ -117,11 +117,11 @@ struct PathfinderView: View {
                         NavigationLink(value: Route.media(id)) {
                             Label("Open \(point.sourceTitle ?? "the source")", systemImage: "book.fill")
                         }
-                        .buttonStyle(GhostButtonStyle())
+                        .buttonStyle(SecondaryButtonStyle())
                     }
                 }
                 .padding(16)
-                .glassSurface(cornerRadius: 20, tint: Theme.brandCool)
+                .surface(cornerRadius: 20, tint: Theme.accentCool)
             }
             PlanRouteButton(route: route)
             Text("Routes are built from AniList's relation data. Filler lists come from a hand-checked guide and cover the long-running shows that need one.")
@@ -136,7 +136,7 @@ struct PathfinderView: View {
                 ForEach(routes) { route in
                     Button {
                         Haptics.tick()
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { kind = route.kind }
+                        withAnimation(Motion.standard) { kind = route.kind }
                     } label: {
                         Chip(label: route.kind.title, symbol: route.kind.symbol, isSelected: route.kind == kind)
                     }
@@ -193,7 +193,7 @@ private struct RouteSummary: View {
                     HStack(spacing: 12) {
                         PosterImage(media: next.media, width: 40, cornerRadius: 6)
                         VStack(alignment: .leading, spacing: 2) {
-                            Eyebrow(text: done == 0 ? "Start here" : "Up next", color: Theme.brandCool)
+                            Eyebrow(text: done == 0 ? "Start here" : "Up next", color: Theme.accentCool)
                             Text(model.title(next.media))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.textPrimary)
@@ -204,7 +204,7 @@ private struct RouteSummary: View {
                         Image(systemName: "chevron.right").foregroundStyle(Theme.textTertiary)
                     }
                     .padding(12)
-                    .glassSurface(cornerRadius: 16, interactive: true)
+                    .surface(cornerRadius: 16, interactive: true)
                 }
                 .buttonStyle(PressableStyle(scale: 0.98))
             }
@@ -235,7 +235,7 @@ private struct StepRow: View {
     var body: some View {
         let entry = model.entry(step.media.id)
         let isDone = entry?.status == .completed
-        let tint = Color(anilistHex: step.media.coverImage?.color) ?? Theme.brand
+        let tint = Color(anilistHex: step.media.coverImage?.color) ?? Theme.accent
         HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 0) {
                 ZStack {
@@ -274,7 +274,7 @@ private struct StepRow: View {
                         HStack(spacing: 6) {
                             Text(step.role.label)
                                 .font(Typo.micro)
-                                .foregroundStyle(step.isOptional ? Theme.caution : Theme.brandCool)
+                                .foregroundStyle(step.isOptional ? Theme.caution : Theme.accentCool)
                             if step.isOptional {
                                 Text("OPTIONAL")
                                     .font(Typo.micro)
@@ -340,7 +340,7 @@ private struct PlanRouteButton: View {
                 Label(added ? "Added to your plan" : "Add \(missing.count) to Planning", systemImage: added ? "checkmark" : "text.badge.plus")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(GlowButtonStyle(tint: Theme.brand))
+            .buttonStyle(PrimaryButtonStyle(tint: Theme.accent))
             .disabled(added)
         }
     }

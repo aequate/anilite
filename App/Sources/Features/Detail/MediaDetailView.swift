@@ -216,13 +216,13 @@ private struct EntryActionBar: View {
                     Label(media.mediaType == .anime ? "Start watching" : "Start reading", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle(tint: tint))
+                .buttonStyle(PrimaryButtonStyle(tint: tint))
                 Button {
                     model.add(media, status: .planning)
                 } label: {
                     Label("Plan", systemImage: "bookmark")
                 }
-                .buttonStyle(GhostButtonStyle())
+                .buttonStyle(SecondaryButtonStyle())
             }
         } else {
             Text(model.account == .undecided ? "Set up a library to track this." : "Viewing a read-only profile.")
@@ -250,7 +250,7 @@ private struct EntryActionBar: View {
                 if model.canEdit {
                     if entry.status.isActive, (media.totalUnits ?? Int.max) > entry.progress {
                         Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { model.increment(entry) }
+                            withAnimation(Motion.standard) { model.increment(entry) }
                         } label: {
                             Text("+1 \(media.unitShort)")
                                 .font(.subheadline.weight(.heavy))
@@ -268,7 +268,7 @@ private struct EntryActionBar: View {
                         Image(systemName: "slider.horizontal.3")
                             .font(.headline)
                             .frame(width: 40, height: 40)
-                            .glassCapsule(interactive: true)
+                            .capsuleSurface(interactive: true)
                     }
                     .buttonStyle(PressableStyle(scale: 0.9))
                     .accessibilityLabel("Edit entry")
@@ -287,7 +287,7 @@ private struct EntryActionBar: View {
             }
         }
         .padding(16)
-        .glassSurface(cornerRadius: 20, tint: tint)
+        .surface(cornerRadius: 20, tint: tint)
     }
 
     private func progressText(_ entry: LibraryEntry) -> String {
@@ -323,7 +323,7 @@ private struct AiringCountdown: View {
                 Spacer()
             }
             .padding(14)
-            .glassSurface(cornerRadius: 16)
+            .surface(cornerRadius: 16)
             .accessibilityElement(children: .combine)
         }
     }
@@ -352,14 +352,14 @@ private struct HealthCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassSurface(cornerRadius: 20)
+        .surface(cornerRadius: 20)
         .accessibilityElement(children: .combine)
     }
 
     private var color: Color {
         switch health.verdict {
         case .complete: return Theme.positive
-        case .ongoing, .sequelAnnounced: return Theme.brandCool
+        case .ongoing, .sequelAnnounced: return Theme.accentCool
         case .sourceAhead: return tint
         case .sourceFinishedAnimeStopped, .cancelled: return Theme.caution
         case .unknown: return Theme.textTertiary
@@ -395,11 +395,11 @@ private struct ContinuePointCard: View {
                     Label("Open \(point.sourceTitle ?? "the source")", systemImage: "book.fill")
                         .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(GhostButtonStyle())
+                .buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(16)
-        .glassSurface(cornerRadius: 20, tint: tint)
+        .surface(cornerRadius: 20, tint: tint)
     }
 
     private var confidence: String {

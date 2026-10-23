@@ -24,7 +24,7 @@ struct EntryEditorSheet: View {
 
     private var existing: LibraryEntry? { model.entry(media.id) }
     private var total: Int? { media.totalUnits }
-    private var tint: Color { Color(anilistHex: media.coverImage?.color) ?? Theme.brand }
+    private var tint: Color { Color(anilistHex: media.coverImage?.color) ?? Theme.accent }
 
     var body: some View {
         NavigationStack {
@@ -269,11 +269,11 @@ struct JournalComposeSheet: View {
                                     .frame(maxWidth: .infinity, minHeight: 66)
                                     .background {
                                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .fill(feeling == option ? Theme.brand.opacity(0.3) : Color.white.opacity(0.05))
+                                            .fill(feeling == option ? Theme.accent.opacity(0.3) : Color.white.opacity(0.05))
                                     }
                                     .overlay {
                                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .strokeBorder(feeling == option ? Theme.brand : Theme.hairline)
+                                            .strokeBorder(feeling == option ? Theme.accent : Theme.hairline)
                                     }
                                 }
                                 .buttonStyle(PressableStyle())
@@ -289,7 +289,7 @@ struct JournalComposeSheet: View {
                             .lineLimit(5...14)
                             .focused($focused)
                             .padding(14)
-                            .glassSurface(cornerRadius: 16)
+                            .surface(cornerRadius: 16)
                     }
 
                     if let unit {
@@ -297,7 +297,7 @@ struct JournalComposeSheet: View {
                             Text("Pin to \(media.unitName) \(unit)")
                                 .foregroundStyle(Theme.textPrimary)
                         }
-                        .tint(Theme.brand)
+                        .tint(Theme.accent)
                     }
 
                     Text("Journal notes stay on this device and are never posted to AniList.")

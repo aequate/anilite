@@ -35,10 +35,10 @@ struct SynopsisSection: View {
                 }
                 if length >= 420 {
                     Button(expanded ? "Show less" : "Read more") {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) { expanded.toggle() }
+                        withAnimation(Motion.standard) { expanded.toggle() }
                     }
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
                 }
             }
         }
@@ -71,7 +71,7 @@ struct SynopsisSection: View {
                                 .foregroundStyle(Theme.textPrimary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 7)
-                                .glassCapsule()
+                                .capsuleSurface()
                         }
                 }
                 .buttonStyle(.plain)
@@ -131,10 +131,10 @@ struct VibeSection: View {
             }
         }
         .padding(16)
-        .glassSurface(cornerRadius: 20)
+        .surface(cornerRadius: 20)
         .onAppear {
             if reduceMotion { grown = true } else {
-                withAnimation(.spring(response: 0.9, dampingFraction: 0.7).delay(0.15)) { grown = true }
+                withAnimation(Motion.reveal.delay(0.15)) { grown = true }
             }
         }
     }
@@ -231,7 +231,7 @@ private struct WhereRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color(anilistHex: option.colorHex) ?? Theme.brandCool)
+                .fill(Color(anilistHex: option.colorHex) ?? Theme.accentCool)
                 .frame(width: 12, height: 12)
                 .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 0.6))
             VStack(alignment: .leading, spacing: 2) {
@@ -265,7 +265,7 @@ private struct WhereRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .glassSurface(cornerRadius: 16, interactive: true)
+        .surface(cornerRadius: 16, interactive: true)
         .opacity(option.availability == .discontinued ? 0.55 : 1)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens \(option.site)")
@@ -315,7 +315,7 @@ struct PathfinderTeaser: View {
                         .foregroundStyle(Theme.textTertiary)
                 }
                 .padding(16)
-                .glassSurface(cornerRadius: 20, tint: tint, interactive: true)
+                .surface(cornerRadius: 20, tint: tint, interactive: true)
             }
             .buttonStyle(PressableStyle(scale: 0.98))
         }
@@ -373,7 +373,7 @@ struct EpisodesSection: View {
                                     tint: tint)
                             .onTapGesture {
                                 Haptics.tick()
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                withAnimation(Motion.standard) {
                                     selected = selected == number ? nil : number
                                 }
                             }
@@ -391,7 +391,7 @@ struct EpisodesSection: View {
                 if shown < total {
                     Button("Show all \(total) episodes") { withAnimation { showsAll = true } }
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.brandCool)
+                        .foregroundStyle(Theme.accentCool)
                 }
                 if let selected {
                     selectedDetail(selected, titles: titles, context: context, filler: filler, released: released)
@@ -462,7 +462,7 @@ struct EpisodesSection: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassSurface(cornerRadius: 16)
+        .surface(cornerRadius: 16)
     }
 
     private func setProgress(_ number: Int, total: Int?) {
@@ -720,10 +720,9 @@ struct RelationsSection: View {
             let visibility = SpoilerShield.relation(edge.relationType, base: context, policy: model.spoilerPolicy)
             let masked = !visibility.isVisible && !revealed.contains(node.id)
             VStack(alignment: .leading, spacing: 6) {
-                Text((edge.relationType ?? .other).label.uppercased())
+                Text((edge.relationType ?? .other).label)
                     .font(Typo.micro)
-                    .tracking(1)
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
                 if masked {
                     Button {
                         Haptics.tap(.soft)
@@ -865,7 +864,7 @@ struct StatsSection: View {
                 }
             }
             .padding(16)
-            .glassSurface(cornerRadius: 20)
+            .surface(cornerRadius: 20)
         }
     }
 
@@ -907,7 +906,7 @@ struct JournalSection: View {
                         Label("Write", systemImage: "square.and.pencil")
                             .font(.footnote.weight(.semibold))
                     }
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
                 }
                 if notes.isEmpty {
                     Text("Jot down a moment, a theory, or how an episode made you feel. Notes stay on this device.")
@@ -951,7 +950,7 @@ struct JournalNoteRow: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .glassSurface(cornerRadius: 16)
+        .surface(cornerRadius: 16)
         .accessibilityElement(children: .combine)
     }
 

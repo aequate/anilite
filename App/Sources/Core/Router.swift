@@ -19,11 +19,11 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
-        case .discover: return "sparkles"
-        case .find: return "wand.and.stars"
+        case .discover: return "square.stack"
+        case .find: return "magnifyingglass"
         case .atlas: return "point.3.connected.trianglepath.dotted"
-        case .library: return "books.vertical.fill"
-        case .you: return "person.crop.circle.fill"
+        case .library: return "books.vertical"
+        case .you: return "person.crop.circle"
         }
     }
 }

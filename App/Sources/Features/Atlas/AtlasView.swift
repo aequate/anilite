@@ -89,7 +89,7 @@ struct AtlasView: View {
                 Spacer()
                 HStack(spacing: 8) {
                     iconButton(showsSearch ? "xmark" : "magnifyingglass", label: showsSearch ? "Close search" : "Search a title") {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showsSearch.toggle() }
+                        withAnimation(Motion.standard) { showsSearch.toggle() }
                         searchFocused = showsSearch
                     }
                     if !voiceOver {
@@ -105,7 +105,7 @@ struct AtlasView: View {
             }
             if showsSearch {
                 HStack(spacing: 10) {
-                    Image(systemName: "sparkle.magnifyingglass").foregroundStyle(Theme.brandCool)
+                    Image(systemName: "sparkle.magnifyingglass").foregroundStyle(Theme.accentCool)
                     TextField("Center the map on a title", text: $searchText)
                         .submitLabel(.go)
                         .focused($searchFocused)
@@ -117,7 +117,7 @@ struct AtlasView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .glassSurface(cornerRadius: 18, interactive: true)
+                .surface(cornerRadius: 18, interactive: true)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
             if atlas.state == .loaded { kindFilter }
@@ -132,7 +132,7 @@ struct AtlasView: View {
                 .font(.headline)
                 .foregroundStyle(Theme.textPrimary)
                 .frame(width: 42, height: 42)
-                .glassCapsule(interactive: true)
+                .capsuleSurface(interactive: true)
         }
         .buttonStyle(PressableStyle(scale: 0.9))
         .accessibilityLabel(label)
@@ -156,7 +156,7 @@ struct AtlasView: View {
                             .padding(.horizontal, 11)
                             .padding(.vertical, 7)
                             .foregroundStyle(atlas.hiddenKinds.contains(kind) ? Theme.textTertiary : Theme.textPrimary)
-                            .glassCapsule()
+                            .capsuleSurface()
                             .opacity(atlas.hiddenKinds.contains(kind) ? 0.55 : 1)
                         }
                         .buttonStyle(.plain)
@@ -198,7 +198,7 @@ struct AtlasView: View {
             }
             .onTapGesture(count: 1, coordinateSpace: .local) { location in
                 let id = hit(location, size: size, nodes: nodes)
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { atlas.selected = id }
+                withAnimation(Motion.standard) { atlas.selected = id }
                 if id != nil { Haptics.tick() }
             }
             .accessibilityElement(children: .ignore)
@@ -232,7 +232,7 @@ struct AtlasView: View {
             let isFocus = selected != nil && (edge.a == selected || edge.b == selected)
             let depthFade = min(1, max(0.15, 1.6 - (a.depth + b.depth) / 2 / camera.distance))
             let alpha = isFocus ? 0.75 : (selected == nil ? 0.22 : 0.07) * depthFade
-            let color = isFocus ? (atlas.node(selected)?.tint ?? Theme.brandCool) : Color.white
+            let color = isFocus ? (atlas.node(selected)?.tint ?? Theme.accentCool) : Color.white
             context.stroke(path, with: .color(color.opacity(alpha)), lineWidth: isFocus ? 1.6 : CGFloat(0.6 + edge.strength * 0.4))
             if isFocus {
                 let mid = CGPoint(x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2)
@@ -396,7 +396,7 @@ private struct AtlasNodeCard: View {
                 }
                 Spacer(minLength: 0)
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { atlas.selected = nil }
+                    withAnimation(Motion.standard) { atlas.selected = nil }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.bold))
@@ -412,7 +412,7 @@ private struct AtlasNodeCard: View {
                     ForEach(Array(bridges.enumerated()), id: \.offset) { pair in
                         let bridge = pair.element
                         Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { atlas.selected = bridge.0.id }
+                            withAnimation(Motion.standard) { atlas.selected = bridge.0.id }
                         } label: {
                             HStack(spacing: 6) {
                                 Text(bridge.0.title)
@@ -436,7 +436,7 @@ private struct AtlasNodeCard: View {
                         Label("Open", systemImage: "arrow.up.forward")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(GlowButtonStyle(tint: node.tint))
+                    .buttonStyle(PrimaryButtonStyle(tint: node.tint))
                 }
                 if !atlas.isExpanded(node.id) && !node.isSpoilerHidden {
                     Button {
@@ -449,19 +449,19 @@ private struct AtlasNodeCard: View {
                                 .frame(maxWidth: .infinity)
                         }
                     }
-                    .buttonStyle(GhostButtonStyle())
+                    .buttonStyle(SecondaryButtonStyle())
                 }
                 Button {
                     withAnimation(.easeInOut(duration: 0.45)) { atlas.center(on: node.id) }
                 } label: {
                     Image(systemName: "scope")
                 }
-                .buttonStyle(GhostButtonStyle())
+                .buttonStyle(SecondaryButtonStyle())
                 .accessibilityLabel("Center map here")
             }
         }
         .padding(16)
-        .glassSurface(cornerRadius: 24, tint: node.tint)
+        .surface(cornerRadius: 24, tint: node.tint)
     }
 }
 
@@ -496,7 +496,7 @@ private struct AtlasList: View {
                             .swipeActions(edge: .trailing) {
                                 if !atlas.isExpanded(node.id) && !node.isSpoilerHidden {
                                     Button("Expand") { Task { await atlas.expand(node.id, using: model) } }
-                                        .tint(Theme.brand)
+                                        .tint(Theme.accent)
                                 }
                             }
                             .accessibilityAction(named: "Expand connections") {

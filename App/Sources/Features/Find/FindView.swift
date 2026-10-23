@@ -36,7 +36,7 @@ struct FindView: View {
                     .foregroundStyle(Theme.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                Picker("Mode", selection: $mode.animation(.spring(response: 0.4, dampingFraction: 0.85))) {
+                Picker("Mode", selection: $mode.animation(Motion.standard)) {
                     ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -51,8 +51,8 @@ struct FindView: View {
 
     private var searchField: some View {
         HStack(spacing: 10) {
-            Image(systemName: "wand.and.stars")
-                .foregroundStyle(Theme.brandCool)
+            Image(systemName: "text.magnifyingglass")
+                .foregroundStyle(Theme.textTertiary)
                 .accessibilityHidden(true)
             TextField("Describe what you're in the mood for", text: $find.text, axis: .vertical)
                 .lineLimit(1...3)
@@ -78,7 +78,7 @@ struct FindView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 13)
-        .glassSurface(cornerRadius: 20, interactive: true)
+        .surface(cornerRadius: 20, interactive: true)
     }
 
     @ViewBuilder private var askContent: some View {
@@ -98,7 +98,7 @@ struct FindView: View {
             }
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, 30)
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: find.chips)
+            .animation(Motion.standard, value: find.chips)
         }
         .scrollDismissesKeyboard(.interactively)
         .scrollIndicators(.hidden)
@@ -133,7 +133,7 @@ struct FindView: View {
             ErrorBanner(message: message) { search() }
         default:
             if find.results.isEmpty {
-                EmptyStateView(symbol: "sparkle.magnifyingglass", title: "Nothing matched all of that",
+                EmptyStateView(symbol: "magnifyingglass", title: "Nothing matched all of that",
                                message: "Try removing one of the chips above. Each one narrows the search.")
             } else {
                 resultsList
@@ -280,7 +280,7 @@ private struct SuggestionsView: View {
                     Button { onPick(text) } label: {
                         HStack(spacing: 12) {
                             Image(systemName: example.0)
-                                .foregroundStyle(Theme.brandCool)
+                                .foregroundStyle(Theme.accentCool)
                                 .frame(width: 24)
                             Text("“\(text)”")
                                 .font(.body)
@@ -293,7 +293,7 @@ private struct SuggestionsView: View {
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 14)
-                        .glassSurface(cornerRadius: 16)
+                        .surface(cornerRadius: 16)
                     }
                     .buttonStyle(PressableStyle(scale: 0.98))
                 }
@@ -308,7 +308,7 @@ private struct SuggestionsView: View {
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(Theme.textPrimary)
                                 .frame(maxWidth: .infinity, minHeight: 52)
-                                .glassSurface(cornerRadius: 14)
+                                .surface(cornerRadius: 14)
                         }
                         .buttonStyle(PressableStyle())
                     }
@@ -318,10 +318,10 @@ private struct SuggestionsView: View {
             Button {
                 router.sheet = .concierge
             } label: {
-                Label("New to anime? Ask the Concierge", systemImage: "sparkles")
+                Label("New to anime? Ask the Concierge", systemImage: "questionmark.bubble")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(GhostButtonStyle())
+            .buttonStyle(SecondaryButtonStyle())
         }
         .padding(.top, 4)
     }

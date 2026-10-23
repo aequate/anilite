@@ -100,9 +100,9 @@ private struct StaffContent: View {
                 PersonHeader(imageURL: staff.image?.best, name: staff.name?.full ?? "Unknown", native: staff.name?.native,
                              facts: staff.primaryOccupations ?? [])
                 if !seen.isEmpty {
-                    Label("You've seen or read \(seen.count) of their works", systemImage: "sparkles")
+                    Label("You've seen or read \(seen.count) of their works", systemImage: "checkmark.circle")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.brandCool)
+                        .foregroundStyle(Theme.accentCool)
                 }
                 if let description = staff.description, !description.isEmpty {
                     BioText(raw: description, revealSpoilers: $revealSpoilers)
@@ -222,7 +222,7 @@ struct BrowseView: View {
                             if model.dna.isMeaningful, let top = ranked.first {
                                 Label("Best match for you: \(model.title(top))", systemImage: "dna")
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Theme.brandCool)
+                                    .foregroundStyle(Theme.accentCool)
                             }
                             WorksGrid(title: "Most popular", works: safe)
                         }
@@ -309,7 +309,7 @@ private struct BioText: View {
                 }
             }
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(Theme.brandCool)
+            .foregroundStyle(Theme.accentCool)
         }
     }
 }

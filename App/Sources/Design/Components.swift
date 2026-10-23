@@ -38,47 +38,50 @@ enum Haptics {
 
 // MARK: - Buttons
 
-/// Springy press feedback for cards and buttons.
+/// Press feedback for cards and rows: a slight sink, no spring.
 struct PressableStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
+    var scale: CGFloat = 0.975
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1)
-            .brightness(configuration.isPressed ? -0.04 : 0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .animation(Motion.quick, value: configuration.isPressed)
     }
 }
 
-/// Primary call to action, tinted by the current palette.
-struct GlowButtonStyle: ButtonStyle {
-    var tint: Color = Theme.brand
+/// Primary action. Washi paper on ink by default; on a title's own screen it takes that
+/// title's colour, with text contrast chosen from the fill.
+struct PrimaryButtonStyle: ButtonStyle {
+    var tint: Color = Theme.textPrimary
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
-            .foregroundStyle(Color.black.opacity(0.85))
+            .foregroundStyle(Theme.ink0)
             .padding(.horizontal, 20)
             .padding(.vertical, 13)
             .frame(minHeight: 48)
-            .background(tint, in: Capsule())
-            .shadow(color: tint.opacity(configuration.isPressed ? 0.2 : 0.55), radius: configuration.isPressed ? 6 : 16, y: 6)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .background(tint, in: RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .animation(Motion.quick, value: configuration.isPressed)
     }
 }
 
-struct GhostButtonStyle: ButtonStyle {
+/// Secondary action: an outlined button that leaves the page's colour alone.
+struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous)
         configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
             .frame(minHeight: 44)
-            .glassCapsule(interactive: true)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .background(configuration.isPressed ? Theme.ink2 : Theme.ink1, in: shape)
+            .overlay(shape.strokeBorder(Theme.rule, lineWidth: 1))
+            .animation(Motion.quick, value: configuration.isPressed)
     }
 }
 
@@ -88,7 +91,7 @@ struct Chip: View {
     var label: String
     var symbol: String?
     var isSelected = false
-    var tint: Color = Theme.brand
+    var tint: Color = Theme.textPrimary
 
     var body: some View {
         HStack(spacing: 6) {
@@ -100,15 +103,16 @@ struct Chip: View {
         .padding(.horizontal, 13)
         .padding(.vertical, 8)
         .frame(minHeight: 36)
-        .foregroundStyle(isSelected ? Color.black.opacity(0.85) : Theme.textPrimary)
+        .foregroundStyle(isSelected ? Theme.ink0 : Theme.textPrimary)
         .background {
             if isSelected {
                 Capsule().fill(tint)
             } else {
-                Capsule().fill(Color.white.opacity(0.07))
-                    .overlay(Capsule().strokeBorder(Theme.hairline))
+                Capsule().fill(Theme.ink1)
+                    .overlay(Capsule().strokeBorder(Theme.rule))
             }
         }
+        .animation(Motion.quick, value: isSelected)
         .contentShape(Capsule())
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
@@ -161,18 +165,18 @@ struct FlowLayout: Layout {
 
 struct ProgressRing: View {
     var progress: Double
-    var tint: Color = Theme.brand
+    var tint: Color = Theme.accent
     var lineWidth: CGFloat = 4
 
     var body: some View {
         ZStack {
-            Circle().stroke(Color.white.opacity(0.1), lineWidth: lineWidth)
+            Circle().stroke(Theme.ink3, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: clamp01(progress))
                 .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
         }
-        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+        .animation(Motion.gentle, value: progress)
         .accessibilityElement()
         .accessibilityLabel("Progress")
         .accessibilityValue("\(Int((clamp01(progress) * 100).rounded())) percent")
@@ -181,18 +185,18 @@ struct ProgressRing: View {
 
 struct ProgressBar: View {
     var progress: Double
-    var tint: Color = Theme.brand
+    var tint: Color = Theme.accent
     var height: CGFloat = 4
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.1))
+                Capsule().fill(Theme.ink3)
                 Capsule().fill(tint).frame(width: max(height, proxy.size.width * clamp01(progress)))
             }
         }
         .frame(height: height)
-        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: progress)
+        .animation(Motion.gentle, value: progress)
         .accessibilityHidden(true)
     }
 }
@@ -241,17 +245,16 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: symbol)
-                .font(.system(size: 38, weight: .semibold))
-                .foregroundStyle(Theme.brand)
-                .symbolRenderingMode(.hierarchical)
+                .font(.system(size: 30, weight: .regular))
+                .foregroundStyle(Theme.textTertiary)
                 .accessibilityHidden(true)
-            Text(title).font(.title3.weight(.bold)).foregroundStyle(Theme.textPrimary)
+            Text(title).font(Typo.sectionTitle).foregroundStyle(Theme.textPrimary)
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             if let actionTitle, let action {
-                Button(actionTitle, action: action).buttonStyle(GhostButtonStyle())
+                Button(actionTitle, action: action).buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(28)
@@ -276,39 +279,23 @@ struct ErrorBanner: View {
             if let retry {
                 Button("Retry", action: retry)
                     .font(.footnote.weight(.bold))
-                    .foregroundStyle(Theme.brand)
+                    .foregroundStyle(Theme.accent)
             }
         }
         .padding(14)
-        .glassSurface(cornerRadius: Theme.cornerSmall, tint: Theme.caution)
+        .surface(cornerRadius: Theme.cornerSmall, tint: Theme.caution)
         .padding(.horizontal, Theme.gutter)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Animated placeholder bar while content loads.
+/// Placeholder block while content loads: a flat surface in the shape of what's coming.
 struct Skeleton: View {
-    var cornerRadius: CGFloat = 12
-    @State private var phase: CGFloat = -1
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var cornerRadius: CGFloat = 8
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.white.opacity(0.06))
-            .overlay {
-                if !reduceMotion {
-                    GeometryReader { proxy in
-                        LinearGradient(colors: [.clear, Color.white.opacity(0.08), .clear], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: proxy.size.width * 0.6)
-                            .offset(x: phase * proxy.size.width)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                }
-            }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) { phase = 1.4 }
-            }
+        RoundedRectangle(cornerRadius: min(cornerRadius, Theme.corner), style: .continuous)
+            .fill(Theme.ink1)
             .accessibilityHidden(true)
     }
 }
@@ -326,7 +313,7 @@ struct StatPill: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color.black.opacity(0.35), in: Capsule())
+        .background(Theme.ink0.opacity(0.72), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }

@@ -218,8 +218,8 @@ final class AtlasModel {
 extension AtlasKind {
     var tint: Color {
         switch self {
-        case .anime: return Theme.brand
-        case .manga: return Theme.brandCool
+        case .anime: return Theme.accent
+        case .manga: return Theme.accentCool
         case .character: return Theme.caution
         case .creator: return Theme.positive
         case .studio: return Color(hex: 0xB69CFF)

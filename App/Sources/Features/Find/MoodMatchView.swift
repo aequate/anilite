@@ -94,7 +94,7 @@ struct MoodMatchView: View {
                 } else if value.translation.width < -threshold || projected < -threshold * 2.2 {
                     decide(.skip, velocity: projected)
                 } else {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.62)) { drag = .zero }
+                    withAnimation(Motion.standard) { drag = .zero }
                     zone = 0
                 }
             }
@@ -109,7 +109,7 @@ struct MoodMatchView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Theme.textPrimary)
                         .frame(width: 52, height: 52)
-                        .glassCapsule(interactive: true)
+                        .capsuleSurface(interactive: true)
                 }
                 .buttonStyle(PressableStyle(scale: 0.9))
                 .accessibilityLabel("Details for \(model.title(top))")
@@ -128,7 +128,7 @@ struct MoodMatchView: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(tint)
                 .frame(width: 64, height: 64)
-                .glassCapsule(tint: tint, interactive: true)
+                .capsuleSurface(tint: tint, interactive: true)
         }
         .buttonStyle(PressableStyle(scale: 0.88))
         .accessibilityLabel(label)
@@ -139,9 +139,9 @@ struct MoodMatchView: View {
             if loading {
                 ProgressView().controlSize(.large)
             } else {
-                Image(systemName: "sparkles.rectangle.stack")
-                    .font(.system(size: 46))
-                    .foregroundStyle(Theme.brandCool)
+                Image(systemName: "rectangle.stack")
+                    .font(.system(size: 34, weight: .light))
+                    .foregroundStyle(Theme.textTertiary)
                 Text(saved.isEmpty ? "That's the deck" : "\(saved.count) saved, \(skipped) skipped")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(Theme.textPrimary)
@@ -162,12 +162,12 @@ struct MoodMatchView: View {
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
                 Button("Deal a new deck") { Task { await rebuild(fresh: true) } }
-                    .buttonStyle(GlowButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
             }
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .glassSurface(cornerRadius: 28)
+        .surface(cornerRadius: 28)
     }
 
     // MARK: Logic
@@ -179,7 +179,7 @@ struct MoodMatchView: View {
         flinging = true
         let direction: CGFloat = decision == .like ? 1 : -1
         let distance = max(520, abs(velocity))
-        let animation: Animation = budget.allowsPhysics ? .spring(response: 0.38, dampingFraction: 0.9) : .easeOut(duration: 0.2)
+        let animation: Animation = budget.allowsPhysics ? Motion.standard : .easeOut(duration: 0.2)
         if decision == .like {
             Haptics.success()
             if model.canEdit, model.entry(top.id) == nil { model.add(top, status: .planning) }
@@ -242,7 +242,7 @@ struct MoodMatchView: View {
                 .sorted { $0.1 > $1.1 }
                 .map(\.0)
         }
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+        withAnimation(Motion.gentle) {
             deck = Array(ranked.prefix(24))
         }
         ImagePipeline.shared.prefetch(deck.prefix(6).compactMap { $0.coverImage?.best }, points: 460)
@@ -260,7 +260,7 @@ private struct MoodCard: View {
 
     var body: some View {
         let vibe = VibeProfile.of(media)
-        let tint = Color(anilistHex: media.coverImage?.color) ?? Theme.brand
+        let tint = Color(anilistHex: media.coverImage?.color) ?? Theme.accent
         ZStack(alignment: .bottomLeading) {
             RemoteImage(media.coverImage?.best, points: 460, placeholder: tint.opacity(0.35))
             LinearGradient(colors: [.clear, .clear, .black.opacity(0.92)], startPoint: .top, endPoint: .bottom)
@@ -278,7 +278,7 @@ private struct MoodCard: View {
                             .font(Typo.micro)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 5)
-                            .background(tint.opacity(0.25 + dim.value * 0.5), in: Capsule())
+                            .background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                             .foregroundStyle(.white)
                     }
                 }
@@ -294,11 +294,11 @@ private struct MoodCard: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 470)
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
-        .overlay(alignment: .topLeading) { stamp(model.canEdit ? "SAVE" : "LIKE", color: Theme.positive, amount: likeAmount, angle: -14) }
-        .overlay(alignment: .topTrailing) { stamp("SKIP", color: Theme.negative, amount: -likeAmount, angle: 14) }
-        .shadow(color: tint.opacity(0.35), radius: 26, y: 14)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous).strokeBorder(Theme.hairline))
+        .overlay(alignment: .topLeading) { stamp(model.canEdit ? "Save" : "Like", color: Theme.positive, amount: likeAmount, angle: -14) }
+        .overlay(alignment: .topTrailing) { stamp("Skip", color: Theme.negative, amount: -likeAmount, angle: 14) }
+        .shadow(color: .black.opacity(0.45), radius: 14, y: 8)
         .accessibilityLabel("\(model.title(media)). \(meta.joined(separator: ", "))")
     }
 
@@ -317,8 +317,7 @@ private struct MoodCard: View {
 
     private func stamp(_ text: String, color: Color, amount: Double, angle: Double) -> some View {
         Text(text)
-            .font(.system(size: 30, weight: .black, design: .rounded))
-            .tracking(2)
+            .font(.system(size: 28, weight: .heavy, design: .serif))
             .foregroundStyle(color)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)

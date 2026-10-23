@@ -50,7 +50,7 @@ struct LibraryView: View {
                 .font(Typo.caption)
                 .foregroundStyle(Theme.textTertiary)
             if !model.library.isEmpty {
-                Picker("Type", selection: $type.animation(.spring(response: 0.4, dampingFraction: 0.85))) {
+                Picker("Type", selection: $type.animation(Motion.standard)) {
                     Text("Anime").tag(MediaType.anime)
                     Text("Manga").tag(MediaType.manga)
                 }
@@ -68,7 +68,7 @@ struct LibraryView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .glassSurface(cornerRadius: 16, interactive: true)
+                .surface(cornerRadius: 16, interactive: true)
             }
         }
         .padding(.horizontal, Theme.gutter)
@@ -152,11 +152,11 @@ struct LibraryView: View {
                 NavigationLink(value: Route.planner) {
                     Label("Plan it out", systemImage: "calendar.badge.clock")
                 }
-                .buttonStyle(GhostButtonStyle())
+                .buttonStyle(SecondaryButtonStyle())
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassSurface(cornerRadius: Theme.corner)
+            .surface(cornerRadius: Theme.corner)
             .padding(.horizontal, Theme.gutter)
         }
     }
@@ -171,7 +171,7 @@ struct LibraryView: View {
                         Image(systemName: "plus")
                             .font(.headline)
                             .frame(width: 36, height: 36)
-                            .glassCapsule(interactive: true)
+                            .capsuleSurface(interactive: true)
                     }
                     .accessibilityLabel("New shelf")
                 }
@@ -195,8 +195,8 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 10) {
             Eyebrow(text: "Tools")
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                ToolTile(route: .planner, title: "Binge Planner", symbol: "calendar.badge.clock", tint: Theme.brand)
-                ToolTile(route: .calendar, title: "Airing Calendar", symbol: "dot.radiowaves.left.and.right", tint: Theme.brandCool)
+                ToolTile(route: .planner, title: "Binge Planner", symbol: "calendar.badge.clock", tint: Theme.accent)
+                ToolTile(route: .calendar, title: "Airing Calendar", symbol: "dot.radiowaves.left.and.right", tint: Theme.accentCool)
                 ToolTile(route: .journal, title: "Journal", symbol: "book.closed.fill", tint: Theme.caution)
                 ToolTile(route: .history, title: "History", symbol: "clock.arrow.circlepath", tint: Theme.positive)
             }
@@ -287,7 +287,7 @@ private struct StatusTile: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassSurface(cornerRadius: 18)
+        .surface(cornerRadius: 18)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(status.label(for: type)), \(count)")
     }
@@ -318,7 +318,7 @@ private struct ShelfTile: View {
                 }
             }
             HStack(spacing: 6) {
-                Image(systemName: shelf.symbol).font(.caption).foregroundStyle(Theme.brandCool)
+                Image(systemName: shelf.symbol).font(.caption).foregroundStyle(Theme.accentCool)
                 Text(shelf.name)
                     .font(Typo.cardTitle)
                     .foregroundStyle(Theme.textPrimary)
@@ -355,7 +355,7 @@ private struct ToolTile: View {
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 54)
-            .glassSurface(cornerRadius: 16, interactive: true)
+            .surface(cornerRadius: 16, interactive: true)
         }
         .buttonStyle(PressableStyle())
     }
@@ -397,7 +397,7 @@ struct StatusListView: View {
                         if model.canEdit {
                             Button(role: .destructive) { model.remove(mediaId: entry.mediaId) } label: { Label("Remove", systemImage: "trash") }
                             Button { router.sheet = .editor(entry.media) } label: { Label("Edit", systemImage: "slider.horizontal.3") }
-                                .tint(Theme.brandCool)
+                                .tint(Theme.accentCool)
                         }
                     }
             }

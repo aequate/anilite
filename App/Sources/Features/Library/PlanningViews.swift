@@ -74,7 +74,7 @@ struct PlannerView: View {
         let budget = model.settings.weeklyBudget
         return VStack(alignment: .leading, spacing: 12) {
             Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { showsBudget.toggle() }
+                withAnimation(Motion.standard) { showsBudget.toggle() }
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -89,7 +89,7 @@ struct PlannerView: View {
                     HStack(alignment: .bottom, spacing: 4) {
                         ForEach(0..<7, id: \.self) { day in
                             Capsule()
-                                .fill(Theme.brand.opacity(0.85))
+                                .fill(Theme.accent.opacity(0.85))
                                 .frame(width: 6, height: max(4, CGFloat(budget.minutes[day]) / 6))
                         }
                     }
@@ -121,11 +121,11 @@ struct PlannerView: View {
                 }
                 Button("Reset to a typical week") { model.settings.weeklyBudget = .standard }
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
             }
         }
         .padding(16)
-        .glassSurface(cornerRadius: 20)
+        .surface(cornerRadius: 20)
     }
 
     private func finishList(_ plan: BingePlan, items: [PlanItem]) -> some View {
@@ -169,7 +169,7 @@ struct PlannerView: View {
                     VStack(spacing: 2) {
                         Text(day.date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
                             .font(Typo.micro)
-                            .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Theme.brand : Theme.textTertiary)
+                            .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Theme.accent : Theme.textTertiary)
                         Text(day.date.formatted(.dateTime.day()))
                             .font(.title3.weight(.bold).monospacedDigit())
                             .foregroundStyle(Theme.textPrimary)
@@ -194,12 +194,12 @@ struct PlannerView: View {
                             }
                         }
                         if day.budget > 0 {
-                            ProgressBar(progress: Double(day.used) / Double(max(1, day.budget)), tint: Theme.brand, height: 3)
+                            ProgressBar(progress: Double(day.used) / Double(max(1, day.budget)), tint: Theme.accent, height: 3)
                         }
                     }
                 }
                 .padding(12)
-                .glassSurface(cornerRadius: 16)
+                .surface(cornerRadius: 16)
             }
         }
     }
@@ -216,7 +216,7 @@ struct PlannerView: View {
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: includedPlanning.contains(entry.mediaId) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(includedPlanning.contains(entry.mediaId) ? Theme.brand : Theme.textTertiary)
+                                .foregroundStyle(includedPlanning.contains(entry.mediaId) ? Theme.accent : Theme.textTertiary)
                             Text(model.title(entry.media))
                                 .font(.subheadline)
                                 .foregroundStyle(Theme.textPrimary)
@@ -289,7 +289,7 @@ struct AiringCalendarView: View {
                     } header: {
                         Text(dayTitle(day.date))
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Theme.brand : Theme.textSecondary)
+                            .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Theme.accent : Theme.textSecondary)
                     }
                 }
             }

@@ -39,7 +39,7 @@ struct PosterCard: View {
                                 .foregroundStyle(.black.opacity(0.85))
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 4)
-                                .background(Color(anilistHex: media.coverImage?.color) ?? Theme.brand, in: Capsule())
+                                .background(Color(anilistHex: media.coverImage?.color) ?? Theme.accent, in: Capsule())
                                 .padding(7)
                         }
                     }
@@ -73,7 +73,7 @@ struct PosterCard: View {
 
     @ViewBuilder private var progressOverlay: some View {
         if let entry = model.entry(media.id), entry.status.isActive, let completion = entry.completion {
-            ProgressBar(progress: completion, tint: Color(anilistHex: media.coverImage?.color) ?? Theme.brand, height: 3)
+            ProgressBar(progress: completion, tint: Color(anilistHex: media.coverImage?.color) ?? Theme.accent, height: 3)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
         }
@@ -140,7 +140,7 @@ struct MediaRow: View {
                                 .foregroundStyle(Theme.textTertiary)
                         }
                         if entry.status.isActive, let completion = entry.completion {
-                            ProgressBar(progress: completion, tint: Color(anilistHex: media.coverImage?.color) ?? Theme.brand, height: 3)
+                            ProgressBar(progress: completion, tint: Color(anilistHex: media.coverImage?.color) ?? Theme.accent, height: 3)
                                 .frame(maxWidth: 160)
                         }
                     }
@@ -191,7 +191,7 @@ struct StatusDot: View {
     static func color(_ status: MediaListStatus) -> Color {
         switch status {
         case .current, .repeating: return Theme.positive
-        case .planning: return Theme.brandCool
+        case .planning: return Theme.accentCool
         case .completed: return Color(hex: 0xA48BFF)
         case .paused: return Theme.caution
         case .dropped: return Theme.negative

@@ -39,7 +39,7 @@ struct TasteDNAView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Your vibe", subtitle: "The feel of what you love")
             HStack(alignment: .center, spacing: 18) {
-                VibeRadar(values: dims.map(\.value), tint: Theme.brand, glow: Theme.brandCool)
+                VibeRadar(values: dims.map(\.value), tint: Theme.accent, glow: Theme.accentCool)
                     .frame(width: 150, height: 150)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
@@ -58,7 +58,7 @@ struct TasteDNAView: View {
                 }
             }
             .padding(16)
-            .glassSurface(cornerRadius: 20)
+            .surface(cornerRadius: 20)
         }
     }
 
@@ -77,7 +77,7 @@ struct TasteDNAView: View {
                                 .frame(width: 110, alignment: .leading)
                             GeometryReader { proxy in
                                 Capsule()
-                                    .fill(LinearGradient(colors: [Theme.brand, Theme.brandCool], startPoint: .leading, endPoint: .trailing))
+                                    .fill(Theme.accent)
                                     .frame(width: max(6, proxy.size.width * CGFloat(max(0, item.value) / max(maxWeight, 0.0001))))
                             }
                             .frame(height: 8)
@@ -90,7 +90,7 @@ struct TasteDNAView: View {
                 FlowLayout(spacing: 8) {
                     ForEach(dna.topThemes.prefix(10), id: \.self) { theme in
                         NavigationLink(value: Route.tag(theme, .anime)) {
-                            Chip(label: theme, symbol: nil, tint: Theme.brandCool)
+                            Chip(label: theme, symbol: nil, tint: Theme.accentCool)
                         }
                         .buttonStyle(.plain)
                     }
@@ -130,7 +130,7 @@ struct TasteDNAView: View {
                     ForEach(dna.evolution) { era in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
-                                Circle().fill(Theme.brand).frame(width: 9, height: 9)
+                                Circle().fill(Theme.accent).frame(width: 9, height: 9)
                                 Rectangle().fill(Theme.hairline).frame(height: 1)
                             }
                             Text(String(era.year))
@@ -161,7 +161,7 @@ struct TasteDNAView: View {
                     HStack(spacing: 10) {
                         PosterImage(media: bridge.first, width: 44, cornerRadius: 6)
                         Image(systemName: "link")
-                            .foregroundStyle(Theme.brandCool)
+                            .foregroundStyle(Theme.accentCool)
                         PosterImage(media: bridge.second, width: 44, cornerRadius: 6)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("\(model.title(bridge.first)) & \(model.title(bridge.second))")
@@ -174,7 +174,7 @@ struct TasteDNAView: View {
                         }
                     }
                     .padding(12)
-                    .glassSurface(cornerRadius: 16)
+                    .surface(cornerRadius: 16)
                     .accessibilityElement(children: .combine)
                 }
             }
@@ -189,7 +189,7 @@ struct TasteDNAView: View {
                 Label("Share my Taste DNA", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(GlowButtonStyle())
+            .buttonStyle(PrimaryButtonStyle())
         }
     }
 
@@ -212,12 +212,12 @@ private struct HabitTile: View {
             if let detail {
                 Text(detail)
                     .font(Typo.micro)
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .glassSurface(cornerRadius: 16)
+        .surface(cornerRadius: 16)
         .accessibilityElement(children: .combine)
     }
 }
@@ -239,9 +239,8 @@ struct AchievementsView: View {
                 if !unlocked.isEmpty {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
                         ForEach(unlocked) { achievement in
-                            HoloSurface(cornerRadius: 20) {
-                                AchievementBody(achievement: achievement)
-                            }
+                            AchievementBody(achievement: achievement)
+                                .surface()
                         }
                     }
                 }
@@ -250,7 +249,7 @@ struct AchievementsView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
                         ForEach(locked) { achievement in
                             AchievementBody(achievement: achievement)
-                                .glassSurface(cornerRadius: 20)
+                                .surface(cornerRadius: 20)
                         }
                     }
                 }
@@ -269,14 +268,18 @@ private struct AchievementBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ZStack {
-                if !achievement.isUnlocked {
-                    ProgressRing(progress: achievement.progress, tint: Theme.caution, lineWidth: 3)
+                if achievement.isUnlocked {
+                    Circle().strokeBorder(Theme.seal, lineWidth: 2)
+                    Circle().strokeBorder(Theme.seal.opacity(0.55), lineWidth: 0.75).padding(4)
+                } else {
+                    ProgressRing(progress: achievement.progress, tint: Theme.textSecondary, lineWidth: 2)
                 }
                 Image(systemName: achievement.symbol)
                     .font(.title3)
-                    .foregroundStyle(achievement.isUnlocked ? Theme.textPrimary : Theme.textTertiary)
+                    .foregroundStyle(achievement.isUnlocked ? Theme.seal : Theme.textTertiary)
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 46, height: 46)
+            .rotationEffect(.degrees(achievement.isUnlocked ? -8 : 0))
             Text(achievement.title)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(achievement.isUnlocked ? Theme.textPrimary : Theme.textSecondary)
@@ -287,7 +290,7 @@ private struct AchievementBody: View {
             if !achievement.isUnlocked {
                 Text("\(Int((achievement.progress * 100).rounded()))%")
                     .font(Typo.micro.monospacedDigit())
-                    .foregroundStyle(Theme.caution)
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
@@ -311,14 +314,14 @@ struct RecapView: View {
         let recap = YearRecap.build(year: year, library: model.library, activities: model.activities, journal: model.journal)
         Group {
             if recap.isEmpty {
-                EmptyStateView(symbol: "sparkles", title: "Nothing to recap for \(String(year))",
+                EmptyStateView(symbol: "calendar", title: "Nothing to recap for \(String(year))",
                                message: "Finish something this year and your recap will start writing itself.")
                     .frame(maxHeight: .infinity)
             } else {
                 TabView(selection: $page) {
-                    RecapPage(index: 0, page: page, eyebrow: "\(String(year)) in anime & manga", tint: Theme.brand) {
-                        CountUp(target: recap.minutes / 60, active: page == 0, suffix: " hours")
-                        Text("spent in other worlds")
+                    RecapPage(index: 0, page: page, eyebrow: "\(String(year)) in anime & manga", tint: Theme.accent) {
+                        BigNumber(value: recap.minutes / 60, suffix: " hours")
+                        Text("of watching")
                             .font(.title3)
                             .foregroundStyle(Theme.textSecondary)
                         Text("\(recap.episodes) episodes · \(recap.chapters) chapters")
@@ -327,8 +330,8 @@ struct RecapView: View {
                     }
                     .tag(0)
 
-                    RecapPage(index: 1, page: page, eyebrow: "You finished", tint: Theme.brandCool) {
-                        CountUp(target: recap.completedAnime.count + recap.completedManga.count, active: page == 1, suffix: " titles")
+                    RecapPage(index: 1, page: page, eyebrow: "You finished", tint: Theme.accentCool) {
+                        BigNumber(value: recap.completedAnime.count + recap.completedManga.count, suffix: " titles")
                         PosterStack(entries: Array((recap.completedAnime + recap.completedManga).prefix(7)))
                         if let first = recap.firstFinish {
                             Text("First finish of the year: \(model.title(first.media))")
@@ -375,7 +378,7 @@ struct RecapView: View {
                     }
                     .tag(3)
 
-                    RecapPage(index: 4, page: page, eyebrow: "Your favourites", tint: Theme.brand) {
+                    RecapPage(index: 4, page: page, eyebrow: "Your favourites", tint: Theme.accent) {
                         VStack(spacing: 10) {
                             ForEach(recap.topRated.prefix(3)) { entry in
                                 NavigationLink(value: Route.media(entry.mediaId)) {
@@ -402,7 +405,7 @@ struct RecapView: View {
                         ShareLink(item: shareText(recap)) {
                             Label("Share my recap", systemImage: "square.and.arrow.up")
                         }
-                        .buttonStyle(GlowButtonStyle())
+                        .buttonStyle(PrimaryButtonStyle())
                     }
                     .tag(4)
                 }
@@ -445,48 +448,27 @@ private struct RecapPage<Content: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(24)
         .background {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(LinearGradient(colors: [tint.opacity(0.28), Theme.ink1.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).strokeBorder(Theme.hairline))
+            CardSurface(band: tint) { Color.clear }
         }
         .padding(.horizontal, Theme.gutter)
         .padding(.top, 12)
         .padding(.bottom, 50)
-        .opacity(isCurrent || !budget.allowsPhysics ? 1 : 0.4)
-        .scaleEffect(isCurrent || !budget.allowsPhysics ? 1 : 0.94)
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isCurrent)
+        .opacity(isCurrent || !budget.allowsPhysics ? 1 : 0.5)
+        .animation(Motion.gentle, value: isCurrent)
     }
 }
 
-/// A number that counts up when its page appears (instantly with Reduce Motion).
-private struct CountUp: View {
-    let target: Int
-    let active: Bool
+/// A headline number. It doesn't count up: the figure is the point, so it's there at once.
+private struct BigNumber: View {
+    let value: Int
     var suffix: String = ""
-    @Environment(EffectsBudget.self) private var budget
-    @State private var shown = 0
 
     var body: some View {
-        Text("\(shown)\(suffix)")
+        Text("\(value)\(suffix)")
             .font(Typo.bigMetric)
             .foregroundStyle(Theme.textPrimary)
-            .contentTransition(.numericText(value: Double(shown)))
             .minimumScaleFactor(0.5)
             .lineLimit(1)
-            .accessibilityLabel("\(target)\(suffix)")
-            .task(id: active) {
-                guard active else { return }
-                guard budget.allowsPhysics, target > 0 else { shown = target; return }
-                shown = 0
-                let steps = 24
-                for step in 1...steps {
-                    try? await Task.sleep(nanoseconds: 35_000_000)
-                    if Task.isCancelled { return }
-                    let eased = 1 - pow(1 - Double(step) / Double(steps), 3)
-                    withAnimation(.easeOut(duration: 0.08)) { shown = Int((Double(target) * eased).rounded()) }
-                }
-                Haptics.tap(.soft)
-            }
     }
 }
 
@@ -497,10 +479,9 @@ private struct PosterStack: View {
         ZStack {
             ForEach(Array(entries.enumerated()), id: \.offset) { pair in
                 let offset = CGFloat(pair.offset) - CGFloat(entries.count - 1) / 2
-                PosterImage(media: pair.element.media, width: 92, cornerRadius: 10)
-                    .shadow(color: .black.opacity(0.4), radius: 10, y: 6)
-                    .rotationEffect(.degrees(Double(offset) * 6))
-                    .offset(x: offset * 34, y: abs(offset) * 8)
+                PosterImage(media: pair.element.media, width: 88, cornerRadius: Theme.cornerCover)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.cornerCover).strokeBorder(Theme.ink0, lineWidth: 1.5))
+                    .offset(x: offset * 38)
             }
         }
         .frame(maxWidth: .infinity)
@@ -536,10 +517,10 @@ private struct MonthBars: View {
         }
         .onAppear {
             guard animate else { return }
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.75).delay(0.1)) { grown = true }
+            withAnimation(Motion.reveal.delay(0.1)) { grown = true }
         }
         .onChange(of: animate) {
-            if animate { withAnimation(.spring(response: 0.8, dampingFraction: 0.75)) { grown = true } }
+            if animate { withAnimation(Motion.reveal) { grown = true } }
         }
         .accessibilityElement()
         .accessibilityLabel("Minutes watched per month")

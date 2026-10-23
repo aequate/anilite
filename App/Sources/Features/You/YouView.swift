@@ -21,12 +21,12 @@ struct YouView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionHeader(title: "Your story")
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                        YouTile(route: .recap(currentYear), symbol: "sparkles.rectangle.stack", title: "\(String(currentYear)) Recap",
-                                detail: "Your year, animated", tint: Theme.brand)
+                        YouTile(route: .recap(currentYear), symbol: "calendar", title: "\(String(currentYear)) Recap",
+                                detail: "Your year so far", tint: Theme.accent)
                         YouTile(route: .achievements, symbol: "rosette", title: "Achievements",
                                 detail: "\(model.achievements.filter(\.isUnlocked).count) of \(model.achievements.count) unlocked", tint: Theme.caution)
                         YouTile(route: .social, symbol: "person.2.wave.2", title: "Friends & Clubs",
-                                detail: socialDetail, tint: Theme.brandCool)
+                                detail: socialDetail, tint: Theme.accentCool)
                         YouTile(route: .recap(currentYear - 1), symbol: "clock.arrow.circlepath", title: "\(String(currentYear - 1)) Recap",
                                 detail: "Look back", tint: Theme.positive)
                     }
@@ -37,7 +37,7 @@ struct YouView: View {
                     Divider().overlay(Theme.hairline)
                     RowLink(route: .settings, symbol: "gearshape", title: "Settings")
                 }
-                .glassSurface(cornerRadius: 18)
+                .surface(cornerRadius: 18)
             }
             .padding(.horizontal, Theme.gutter)
             .padding(.bottom, 30)
@@ -114,7 +114,7 @@ private struct StatBlock: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .glassSurface(cornerRadius: 16)
+        .surface(cornerRadius: 16)
         .accessibilityElement(children: .combine)
     }
 }
@@ -143,7 +143,7 @@ private struct YouTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
             .padding(14)
-            .glassSurface(cornerRadius: 18, tint: tint.opacity(0.25))
+            .surface(cornerRadius: 18, tint: tint.opacity(0.25))
         }
         .buttonStyle(PressableStyle())
     }
@@ -174,24 +174,23 @@ struct RowLink: View {
     }
 }
 
-// MARK: - Holographic archetype card
+// MARK: - Archetype card
 
-/// The Taste DNA identity card. A holographic foil shader follows the viewer's finger
-/// (and drifts slowly when effects allow); with Reduce Motion it stays a still print.
+/// The Taste DNA identity card, set like the title page of a volume.
 struct ArchetypeCard: View {
     let dna: TasteDNA
     let name: String
     var compact = true
 
     var body: some View {
-        HoloSurface(cornerRadius: 26) {
+        CardSurface {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Eyebrow(text: "Taste DNA · \(name)", color: Theme.textSecondary)
+                    Eyebrow(text: "Taste DNA of \(name)", color: Theme.textSecondary)
                     Spacer()
                     Image(systemName: dna.archetype.symbol)
-                        .font(.title2)
-                        .foregroundStyle(Theme.textPrimary)
+                        .font(.title3)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 Text(dna.isMeaningful ? dna.archetype.name : "Still forming")
                     .font(Typo.display(compact ? 28 : 34))
@@ -203,7 +202,7 @@ struct ArchetypeCard: View {
                 if dna.isMeaningful {
                     StrandBar(strands: Array(dna.strands.prefix(8)))
                         .frame(height: 30)
-                    Text(dna.topGenres.prefix(4).joined(separator: " · "))
+                    Text(dna.topGenres.prefix(4).joined(separator: ", "))
                         .font(Typo.caption)
                         .foregroundStyle(Theme.textTertiary)
                 }
@@ -229,7 +228,7 @@ private struct StrandBar: View {
                 let strength = CGFloat(abs(strand.weight) / max(maxWeight, 0.0001))
                 let height = max(4, size.height * strength)
                 let rect = CGRect(x: x - step * 0.3, y: (size.height - height) / 2, width: step * 0.6, height: height)
-                let color = strand.kind == .genre ? Theme.brand : Theme.brandCool
+                let color = strand.kind == .genre ? Theme.accent : Theme.accentCool
                 context.fill(Path(roundedRect: rect, cornerRadius: step * 0.3), with: .color(color.opacity(0.4 + 0.6 * Double(strength))))
             }
         }
@@ -237,56 +236,22 @@ private struct StrandBar: View {
     }
 }
 
-struct HoloSurface<Content: View>: View {
-    var cornerRadius: CGFloat = 24
+/// A printed card: solid stock, a hairline edge and a thin rule of the title's colour
+/// along the top, like the band on a volume's obi.
+struct CardSurface<Content: View>: View {
+    var cornerRadius: CGFloat = Theme.corner
+    var band: Color = Theme.accent
     @ViewBuilder var content: Content
 
-    @Environment(EffectsBudget.self) private var budget
-    @State private var tilt: CGPoint = .zero
-    @State private var dragging = false
-
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: min(cornerRadius, Theme.corner), style: .continuous)
         content
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                if budget.animatesBackgrounds {
-                    TimelineView(.animation(minimumInterval: budget.frameInterval * 2, paused: !budget.allowsPhysics)) { context in
-                        foil(time: context.date.timeIntervalSinceReferenceDate)
-                    }
-                } else {
-                    foil(time: 0)
-                }
+            .background(Theme.ink1, in: shape)
+            .overlay(alignment: .top) {
+                Rectangle().fill(band).frame(height: 3)
             }
             .clipShape(shape)
-            .overlay(shape.strokeBorder(LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0.05)],
-                                                       startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-            .rotation3DEffect(.degrees(budget.allowsPhysics ? Double(tilt.y) * 8 : 0), axis: (x: 1, y: 0, z: 0))
-            .rotation3DEffect(.degrees(budget.allowsPhysics ? Double(-tilt.x) * 8 : 0), axis: (x: 0, y: 1, z: 0))
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        guard budget.allowsPhysics else { return }
-                        dragging = true
-                        tilt = CGPoint(x: max(-1, min(1, value.translation.width / 160)),
-                                       y: max(-1, min(1, value.translation.height / 160)))
-                    }
-                    .onEnded { _ in
-                        dragging = false
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.5)) { tilt = .zero }
-                    }
-            )
-    }
-
-    private func foil(time: Double) -> some View {
-        GeometryReader { proxy in
-            Rectangle()
-                .fill(LinearGradient(colors: [Theme.ink3, Color(hex: 0x2A1B3D), Theme.ink2], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .colorEffect(ShaderLibrary.holo(
-                    .float2(proxy.size),
-                    .float2(tilt),
-                    .float(Float(time.truncatingRemainder(dividingBy: 3600)))
-                ))
-        }
+            .overlay(shape.strokeBorder(Theme.hairline, lineWidth: 0.75))
     }
 }

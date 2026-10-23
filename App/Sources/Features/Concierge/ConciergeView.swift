@@ -54,7 +54,7 @@ final class ConciergeModel {
         isThinking = true
         defer { isThinking = false }
         let reply = await answer(Concierge.interpret(trimmed), raw: trimmed, model: model)
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+        withAnimation(Motion.standard) {
             turns.append(contentsOf: reply.map { ConciergeTurn(role: .guide, content: $0) })
         }
         Haptics.tick()
@@ -235,7 +235,7 @@ struct ConciergeView: View {
                 .onSubmit { send(draft) }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .glassSurface(cornerRadius: 22)
+                .surface(cornerRadius: 22)
             Button {
                 send(draft)
             } label: {
@@ -243,7 +243,7 @@ struct ConciergeView: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Theme.ink3 : Theme.brand))
+                    .background(Circle().fill(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Theme.ink3 : Theme.accent))
             }
             .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty || concierge.isThinking)
             .accessibilityLabel("Send")
@@ -298,7 +298,7 @@ private struct TurnView: View {
                 .padding(.vertical, 10)
                 .background {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(turn.role == .user ? Theme.brand.opacity(0.85) : Color.white.opacity(0.07))
+                        .fill(turn.role == .user ? Theme.accent.opacity(0.85) : Color.white.opacity(0.07))
                 }
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -318,7 +318,7 @@ private struct TurnView: View {
                 }
             }
             .padding(16)
-            .glassSurface(cornerRadius: 18)
+            .surface(cornerRadius: 18)
 
         case .picks(let picks, let covers):
             VStack(spacing: 10) {
@@ -341,12 +341,12 @@ private struct TurnView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                                 Text(pick.commitment)
                                     .font(Typo.caption)
-                                    .foregroundStyle(Theme.brandCool)
+                                    .foregroundStyle(Theme.accentCool)
                             }
                             Spacer(minLength: 0)
                         }
                         .padding(12)
-                        .glassSurface(cornerRadius: 16)
+                        .surface(cornerRadius: 16)
                     }
                     .buttonStyle(PressableStyle(scale: 0.98))
                 }
@@ -388,7 +388,7 @@ private struct TurnView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text("\(pair.offset + 1)")
                                     .font(Typo.caption.monospacedDigit().weight(.bold))
-                                    .foregroundStyle(Theme.brand)
+                                    .foregroundStyle(Theme.accent)
                                     .frame(width: 18, alignment: .trailing)
                                 Text(pair.element)
                                     .font(.footnote)
@@ -399,20 +399,20 @@ private struct TurnView: View {
                 }
                 HStack {
                     Button("Open Pathfinder") { open(.pathfinder(mediaId)) }
-                        .buttonStyle(GlowButtonStyle())
+                        .buttonStyle(PrimaryButtonStyle())
                     Button("View title") { open(.media(mediaId)) }
-                        .buttonStyle(GhostButtonStyle())
+                        .buttonStyle(SecondaryButtonStyle())
                 }
             }
             .padding(16)
-            .glassSurface(cornerRadius: 18)
+            .surface(cornerRadius: 18)
 
         case .searchSuggestion(let text):
             Button { search(text) } label: {
                 Label("Search for “\(text)”", systemImage: "magnifyingglass")
                     .font(.subheadline.weight(.semibold))
             }
-            .buttonStyle(GhostButtonStyle())
+            .buttonStyle(SecondaryButtonStyle())
         }
     }
 }

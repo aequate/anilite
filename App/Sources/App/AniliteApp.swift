@@ -19,7 +19,7 @@ struct AniliteApp: App {
                 .environment(model.effects)
                 .environment(model.router)
                 .preferredColorScheme(.dark)
-                .tint(Theme.brand)
+                .tint(Theme.accent)
                 .onOpenURL { model.handle($0) }
                 .task { await model.bootstrap() }
         }

@@ -13,10 +13,10 @@ struct AppRoot: View {
                     .transition(.opacity)
             } else {
                 RootView()
-                    .transition(.opacity.combined(with: .scale(scale: 1.02)))
+                    .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.45), value: model.needsOnboarding)
+        .animation(Motion.gentle, value: model.needsOnboarding)
     }
 }
 
@@ -75,13 +75,14 @@ private struct TabStack: View {
     }
 }
 
-/// Floating dock. Icons only with VoiceOver labels; the selected tab gets a liquid pill.
+/// Floating dock: the one place real glass is used, because it floats over every
+/// screen's moving content. The selected tab is marked by a solid paper tab that slides.
 struct Dock: View {
     static let height: CGFloat = 78
 
     @Environment(Router.self) private var router
     @Environment(EffectsBudget.self) private var budget
-    @Namespace private var pill
+    @Namespace private var marker
 
     var body: some View {
         HStack(spacing: 10) {
@@ -91,21 +92,19 @@ struct Dock: View {
                 }
             }
             .padding(5)
-            .glassCapsule(interactive: true)
+            .floatingGlass()
 
             Button {
                 Haptics.tap(.medium)
                 router.sheet = .concierge
             } label: {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(colors: [Theme.brand, Theme.brandCool], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
+                Image(systemName: "questionmark.bubble")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary)
                     .frame(width: 56, height: 56)
-                    .glassCapsule(tint: Theme.brand, interactive: true)
+                    .floatingGlass()
             }
-            .buttonStyle(PressableStyle(scale: 0.9))
+            .buttonStyle(PressableStyle(scale: 0.94))
             .accessibilityLabel("Ask the Concierge")
             .accessibilityHint("Questions like where to start, what's filler, or what to watch next")
         }
@@ -117,27 +116,25 @@ struct Dock: View {
         let selected = router.tab == tab
         return Button {
             if router.tab != tab { Haptics.tick() }
-            withAnimation(budget.allowsPhysics ? .spring(response: 0.38, dampingFraction: 0.72) : .easeInOut(duration: 0.2)) {
+            withAnimation(budget.allowsPhysics ? Motion.standard : .linear(duration: 0)) {
                 router.select(tab)
             }
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: tab.symbol)
-                    .font(.system(size: 17, weight: .semibold))
-                    .symbolEffect(.bounce, value: selected)
+                    .font(.system(size: 17, weight: selected ? .semibold : .regular))
                 Text(tab.title)
-                    .font(.system(size: 9.5, weight: .bold))
+                    .font(.system(size: 9.5, weight: .semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(selected ? Theme.textPrimary : Theme.textTertiary)
+            .foregroundStyle(selected ? Theme.ink0 : Theme.textSecondary)
             .frame(width: 56, height: 50)
             .background {
                 if selected {
                     Capsule()
-                        .fill(Color.white.opacity(0.13))
-                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12)))
-                        .matchedGeometryEffect(id: "pill", in: pill)
+                        .fill(Theme.textPrimary)
+                        .matchedGeometryEffect(id: "marker", in: marker)
                 }
             }
             .contentShape(Capsule())
@@ -168,13 +165,13 @@ private struct StatusBanners: View {
             }
         }
         .padding(.horizontal, 16)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: model.banner)
-        .animation(.easeInOut, value: model.isOffline)
+        .animation(Motion.standard, value: model.banner)
+        .animation(Motion.standard, value: model.isOffline)
     }
 
     private var offlineText: String {
         let pending = model.queue.count
-        return pending > 0 ? "Offline · \(pending) change\(pending == 1 ? "" : "s") will sync when you reconnect" : "Offline · showing saved data"
+        return pending > 0 ? "Offline. \(pending) change\(pending == 1 ? "" : "s") will sync when you reconnect" : "Offline. Showing saved data."
     }
 
     private func banner(symbol: String, text: String, action: String?, perform: (() -> Void)?) -> some View {
@@ -187,12 +184,12 @@ private struct StatusBanners: View {
             if let action, let perform {
                 Button(action, action: perform)
                     .font(.footnote.weight(.bold))
-                    .foregroundStyle(Theme.brand)
+                    .foregroundStyle(Theme.accent)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassSurface(cornerRadius: 16)
+        .floatingGlass(cornerRadius: Theme.corner, interactive: false)
         .transition(.move(edge: .top).combined(with: .opacity))
         .accessibilityElement(children: .combine)
     }

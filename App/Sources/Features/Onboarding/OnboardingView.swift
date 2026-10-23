@@ -32,13 +32,12 @@ struct OnboardingView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
                 .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 24)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
         }
         .onAppear {
-            withAnimation(budget.allowsPhysics ? .spring(response: 0.9, dampingFraction: 0.85).delay(0.1) : .easeOut(duration: 0.3)) {
+            withAnimation(budget.allowsPhysics ? Motion.reveal.delay(0.1) : .easeOut(duration: 0.3)) {
                 appeared = true
             }
         }
@@ -46,12 +45,9 @@ struct OnboardingView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ANILITE")
-                .font(Typo.display(46))
-                .tracking(4)
-                .foregroundStyle(
-                    LinearGradient(colors: [Theme.textPrimary, Theme.brand.opacity(0.9), Theme.brandCool], startPoint: .leading, endPoint: .trailing)
-                )
+            Text("Anilite")
+                .font(Typo.display(48))
+                .foregroundStyle(Theme.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             Text("Every anime and manga you love, in one living universe.")
                 .font(.title3.weight(.semibold))
@@ -69,14 +65,14 @@ struct OnboardingView: View {
             promise("calendar.badge.clock", "Plans that fit your week", "Binge plans, airing reminders and finish-date forecasts.")
         }
         .padding(18)
-        .glassSurface()
+        .surface()
     }
 
     private func promise(_ symbol: String, _ title: String, _ detail: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
                 .font(.title3)
-                .foregroundStyle(Theme.brandCool)
+                .foregroundStyle(Theme.textSecondary)
                 .frame(width: 28)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
@@ -116,7 +112,7 @@ struct OnboardingView: View {
                     Label("Connect AniList", systemImage: "link")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(working)
                 .accessibilityHint("Signs in on anilist.co so edits sync both ways")
             }
@@ -140,7 +136,7 @@ struct OnboardingView: View {
                         }
                     }
                     .padding(14)
-                    .glassSurface(cornerRadius: 16)
+                    .surface(cornerRadius: 16)
                     if let profileError {
                         Text(profileError).font(.footnote).foregroundStyle(Theme.negative)
                     }
@@ -151,13 +147,13 @@ struct OnboardingView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             } else {
                 Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { showProfileField = true }
+                    withAnimation(Motion.standard) { showProfileField = true }
                     nameFocused = true
                 } label: {
                     Label("Use a public AniList profile", systemImage: "person.crop.circle")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GhostButtonStyle())
+                .buttonStyle(SecondaryButtonStyle())
             }
 
             Button {
@@ -167,7 +163,7 @@ struct OnboardingView: View {
                 Label("Start fresh on this device", systemImage: "iphone")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(GhostButtonStyle())
+            .buttonStyle(SecondaryButtonStyle())
         }
     }
 

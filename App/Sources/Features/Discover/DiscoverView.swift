@@ -89,7 +89,7 @@ private struct DiscoverHeader: View {
                 Image(systemName: "calendar")
                     .font(.headline)
                     .frame(width: 44, height: 44)
-                    .glassCapsule(interactive: true)
+                    .capsuleSurface(interactive: true)
             }
             .buttonStyle(PressableStyle(scale: 0.9))
             .accessibilityLabel("Airing calendar")
@@ -176,7 +176,7 @@ private struct HeroCard: View {
                         .heroSource(media.id)
                     VStack(alignment: .leading, spacing: 6) {
                         Eyebrow(text: media.status == .releasing ? "Trending · airing" : "Trending now",
-                                color: Color(anilistHex: media.coverImage?.color) ?? Theme.brand)
+                                color: Color(anilistHex: media.coverImage?.color) ?? Theme.accent)
                         Text(model.title(media))
                             .font(Typo.display(24))
                             .foregroundStyle(.white)
@@ -227,7 +227,7 @@ private struct TonightSection: View {
                     ForEach(options, id: \.self) { minutes in
                         Button {
                             Haptics.tick()
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { model.settings.tonightMinutes = minutes }
+                            withAnimation(Motion.standard) { model.settings.tonightMinutes = minutes }
                         } label: {
                             Chip(label: Formatting.duration(minutes: minutes), symbol: minutes >= 150 ? "moon.stars.fill" : "clock",
                                  isSelected: model.settings.tonightMinutes == minutes)
@@ -268,7 +268,7 @@ private struct TonightCard: View {
                 PosterImage(media: pick.media, width: 64, cornerRadius: 10)
                     .heroSource(pick.media.id)
                 VStack(alignment: .leading, spacing: 5) {
-                    Eyebrow(text: kindLabel, color: Color(anilistHex: pick.media.coverImage?.color) ?? Theme.brandCool)
+                    Eyebrow(text: kindLabel, color: Color(anilistHex: pick.media.coverImage?.color) ?? Theme.accentCool)
                     Text(model.title(pick.media))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.textPrimary)
@@ -287,7 +287,7 @@ private struct TonightCard: View {
             }
             .padding(12)
             .frame(width: 290, height: 120)
-            .glassSurface(cornerRadius: 20, tint: Color(anilistHex: pick.media.coverImage?.color))
+            .surface(cornerRadius: 20, tint: Color(anilistHex: pick.media.coverImage?.color))
         }
         .buttonStyle(PressableStyle())
         .contextMenu { MediaQuickActions(media: pick.media) }
@@ -339,7 +339,7 @@ struct ContinueCard: View {
 
     var body: some View {
         let media = entry.media
-        let tint = Color(anilistHex: media.coverImage?.color) ?? Theme.brand
+        let tint = Color(anilistHex: media.coverImage?.color) ?? Theme.accent
         VStack(alignment: .leading, spacing: 10) {
             NavigationLink(value: Route.media(media.id)) {
                 HStack(spacing: 12) {
@@ -366,7 +366,7 @@ struct ContinueCard: View {
                 if model.canEdit, (media.totalUnits ?? Int.max) > entry.progress {
                     Button {
                         bump += 1
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { model.increment(entry) }
+                        withAnimation(Motion.standard) { model.increment(entry) }
                     } label: {
                         Text("+1")
                             .font(.footnote.weight(.heavy))
@@ -382,7 +382,7 @@ struct ContinueCard: View {
         }
         .padding(12)
         .frame(width: 270)
-        .glassSurface(cornerRadius: 20, tint: tint)
+        .surface(cornerRadius: 20, tint: tint)
         .contextMenu { MediaQuickActions(media: media) }
     }
 
@@ -417,7 +417,7 @@ private struct MoodSection: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Image(systemName: mood.symbol)
                                     .font(.title3)
-                                    .foregroundStyle(Theme.brandCool)
+                                    .foregroundStyle(Theme.accentCool)
                                 Text(mood.label)
                                     .font(.subheadline.weight(.bold))
                                     .foregroundStyle(Theme.textPrimary)
@@ -429,7 +429,7 @@ private struct MoodSection: View {
                             }
                             .padding(14)
                             .frame(width: 150, height: 118, alignment: .topLeading)
-                            .glassSurface(cornerRadius: 18)
+                            .surface(cornerRadius: 18)
                         }
                         .buttonStyle(PressableStyle())
                         .accessibilityLabel("\(mood.label): \(mood.blurb)")

@@ -148,7 +148,7 @@ struct JoinClubSheet: View {
                     Text(model.clubs.contains { $0.id == club.id } ? "Open club" : "Join club")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
             }
             .padding(Theme.gutter)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -178,9 +178,9 @@ struct FingerprintSheet: View {
                     .foregroundStyle(Theme.textPrimary)
                 Text(fingerprint.archetype)
                     .font(.headline)
-                    .foregroundStyle(Theme.brandCool)
+                    .foregroundStyle(Theme.accentCool)
                 ZStack {
-                    ProgressRing(progress: Double(score) / 100, tint: Theme.brand, lineWidth: 10)
+                    ProgressRing(progress: Double(score) / 100, tint: Theme.accent, lineWidth: 10)
                     VStack(spacing: 2) {
                         Text("\(score)%")
                             .font(Typo.bigMetric)
@@ -213,7 +213,7 @@ struct FingerprintSheet: View {
                     Text(model.friends.contains { $0.name == fingerprint.name } ? "Update friend" : "Add as friend")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(GlowButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
             }
             .padding(Theme.gutter)
             .frame(maxWidth: .infinity)
@@ -350,7 +350,7 @@ struct WeekdayPicker: View {
                     Text(symbols[day - 1])
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity, minHeight: 36)
-                        .background(Circle().fill(on ? Theme.brand : Theme.ink3))
+                        .background(Circle().fill(on ? Theme.accent : Theme.ink3))
                         .foregroundStyle(on ? Color.white : Theme.textSecondary)
                 }
                 .buttonStyle(.plain)
@@ -400,7 +400,7 @@ struct NewShelfSheet: View {
                             } label: {
                                 Image(systemName: item)
                                     .frame(width: 38, height: 38)
-                                    .background(Circle().fill(symbol == item ? Theme.brand : Theme.ink3))
+                                    .background(Circle().fill(symbol == item ? Theme.accent : Theme.ink3))
                                     .foregroundStyle(symbol == item ? Color.white : Theme.textSecondary)
                             }
                             .buttonStyle(.plain)
@@ -497,7 +497,7 @@ private struct MultiPick<Option: Hashable>: View {
                     Text(label(option)).foregroundStyle(Theme.textPrimary)
                     Spacer()
                     if selection.contains(option) {
-                        Image(systemName: "checkmark").foregroundStyle(Theme.brand)
+                        Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                     }
                 }
             }
@@ -561,7 +561,7 @@ struct ShareListSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: picked.contains(entry.mediaId) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(picked.contains(entry.mediaId) ? Theme.brand : Theme.textTertiary)
+                                    .foregroundStyle(picked.contains(entry.mediaId) ? Theme.accent : Theme.textTertiary)
                                 Text(model.title(entry.media)).foregroundStyle(Theme.textPrimary)
                                 Spacer()
                                 if entry.isScored {

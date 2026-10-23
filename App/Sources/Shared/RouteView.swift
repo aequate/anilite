@@ -93,7 +93,7 @@ struct LoadingPlaceholder: View {
     }
 }
 
-/// Dark backdrop used behind every screen that has no artwork atmosphere of its own.
+/// Sumi ground with the marbled-ink backdrop, behind every screen without artwork of its own.
 struct ScreenBackground: View {
     var atmosphere: Atmosphere = .brand
     var intensity: Double = 0.55
@@ -102,7 +102,7 @@ struct ScreenBackground: View {
         ZStack {
             Theme.ink0
             AtmosphereView(atmosphere: atmosphere, intensity: intensity)
-                .mask(LinearGradient(colors: [.black, .black.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom))
+                .mask(LinearGradient(colors: [.black, .black.opacity(0.7), .black.opacity(0.3)], startPoint: .top, endPoint: .bottom))
         }
         .ignoresSafeArea()
     }
